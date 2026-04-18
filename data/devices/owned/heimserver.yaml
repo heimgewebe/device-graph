@@ -3,3 +3,5 @@ name: heimserver
 status: active
 type: mini-pc
 ownership: owned
+category: server
+visibility: direct

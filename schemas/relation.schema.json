@@ -9,7 +9,7 @@
         "properties": {
           "source": { "type": "string" },
           "target": { "type": "string" },
-          "type": { "type": "string" }
+          "type": { "type": "string", "enum": ["connected_to", "depends_on", "managed_by", "trusts", "exposed_to"] }
         },
         "required": ["source", "target", "type"]
       }

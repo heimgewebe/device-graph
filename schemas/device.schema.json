@@ -10,7 +10,11 @@
     "model": { "type": "string" },
     "ram_gb": { "type": "number" },
     "cpu": { "type": "string" },
-    "storage": { "type": "string" }
+    "storage": { "type": "string" },
+    "category": { "type": "string" },
+    "visibility": { "type": "string", "enum": ["direct", "indirect", "inferred", "unknown"] },
+    "management_model": { "type": "string" },
+    "trust_zone": { "type": "string" }
   },
   "required": ["id", "name", "status"]
 }

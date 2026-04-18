@@ -5,3 +5,5 @@ type: raspberry-pi
 ownership: owned
 model: Raspberry Pi 4 Model B
 ram_gb: 8
+category: compute-node
+visibility: direct

@@ -1,7 +1,7 @@
 relations:
   - source: dev-heimserver-01
     target: net-lan-main
-    type: CONNECTED_TO
+    type: connected_to
   - source: dev-heimberry-01
     target: net-lan-main
-    type: CONNECTED_TO
+    type: connected_to

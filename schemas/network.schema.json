@@ -6,7 +6,10 @@
     "name": { "type": "string" },
     "kind": { "type": "string" },
     "cidr_v4": { "type": "string" },
-    "gateway_v4": { "type": "string" }
+    "cidr_v6": { "type": "string" },
+    "gateway_v4": { "type": "string" },
+    "scope": { "type": "string" },
+    "transport": { "type": "string" }
   },
-  "required": ["id", "name", "kind", "cidr_v4"]
+  "required": ["id", "name", "kind"]
 }
