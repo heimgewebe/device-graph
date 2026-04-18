@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "kind": { "type": "string" },
+    "cidr_v4": { "type": "string" },
+    "gateway_v4": { "type": "string" }
+  },
+  "required": ["id", "name", "kind", "cidr_v4"]
+}

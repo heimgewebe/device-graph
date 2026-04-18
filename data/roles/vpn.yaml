@@ -1,3 +1,6 @@
 id: role-vpn
 name: VPN Gateway
+kind: access
+criticality: high
+exclusive: true
 description: Provides remote access (e.g. WireGuard)

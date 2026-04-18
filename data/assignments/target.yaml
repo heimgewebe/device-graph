@@ -1,7 +1,10 @@
 assignments:
   - role: role-dns
     device: dev-heimberry-01
+    confidence: planned
   - role: role-vpn
     device: dev-heimberry-01
+    confidence: speculative
   - role: role-reverse-proxy
     device: dev-heimberry-01
+    confidence: speculative

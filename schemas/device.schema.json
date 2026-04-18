@@ -4,7 +4,13 @@
   "properties": {
     "id": { "type": "string" },
     "name": { "type": "string" },
-    "status": { "type": "string", "enum": ["active", "planned", "retired", "unknown"] }
+    "status": { "type": "string", "enum": ["active", "planned", "retired", "unknown"] },
+    "type": { "type": "string" },
+    "ownership": { "type": "string" },
+    "model": { "type": "string" },
+    "ram_gb": { "type": "number" },
+    "cpu": { "type": "string" },
+    "storage": { "type": "string" }
   },
   "required": ["id", "name", "status"]
 }

@@ -1,3 +1,7 @@
 id: dev-heimberry-01
 name: heimberry
 status: planned
+type: raspberry-pi
+ownership: owned
+model: Raspberry Pi 4 Model B
+ram_gb: 8
