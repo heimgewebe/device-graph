@@ -1,0 +1,3 @@
+id: role-reverse-proxy
+name: Reverse Proxy
+description: Ingress and TLS termination (e.g. Caddy)

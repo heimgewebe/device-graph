@@ -1,0 +1,3 @@
+id: role-vpn
+name: VPN Gateway
+description: Provides remote access (e.g. WireGuard)

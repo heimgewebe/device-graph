@@ -1,0 +1,7 @@
+relations:
+  - source: dev-heimserver-01
+    target: role-dns
+    type: HAS_ROLE
+  - source: dev-heimberry-01
+    target: role-dns
+    type: WILL_HAVE_ROLE

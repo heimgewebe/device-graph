@@ -1,0 +1,3 @@
+id: role-dns
+name: DNS Resolver
+description: Provides local DNS resolution (e.g. Pi-hole)
