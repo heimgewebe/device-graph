@@ -40,6 +40,9 @@ verifies_with: []
 7. **Enforcement vor Konvention:**
    Regeln gelten nur, wenn sie technisch erzwungen und kontinuierlich verifiziert werden.
 
+8. **Epistemische Ehrlichkeit (Determinismus vs. Realität):**
+   Determinismus ist ein Architekturziel, keine absolute Garantie. Client-Verhalten (z.B. DoH/DoT, harte OS-Resolver) kann diesen partiell unterlaufen. Das System ist darauf ausgelegt, dies zu begrenzen und sichtbar zu machen, nicht vollständig zu eliminieren.
+
 ---
 
 ## 1. Geräte-Rollen (final, gehärtet)
