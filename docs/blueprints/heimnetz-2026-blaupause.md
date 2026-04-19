@@ -25,11 +25,11 @@ linked_plans: []
 5. **Eindeutige Abbildung:**
    `1 FQDN → 1 IP → 1 Proxy → 1 Upstream`
 
-6. **Fail-closed:**
-   Fehler führen zu **sichtbarem Ausfall**, nicht zu impliziten Fallbacks
+6. **Kontrollierte Fehlertoleranz:**
+   Fehler führen zu **vorhersehbaren, degradierten Zuständen**, anstatt das Gesamtsystem untrennbar ausfallen zu lassen.
 
 7. **Enforcement vor Konvention:**
-   Regeln gelten nur, wenn sie technisch erzwungen werden
+   Regeln gelten nur, wenn sie technisch erzwungen und kontinuierlich verifiziert werden.
 
 ---
 
@@ -58,9 +58,14 @@ linked_plans: []
 
 **Invarianten:**
 
-* einziger Resolver für `home.arpa`
-* einzige Quelle für DNS-Antworten
-* alle Clients nutzen ausschließlich Heimberry
+* einziger primärer Resolver für `home.arpa`
+* primäre Quelle für DNS-Antworten
+* alle Clients nutzen primär Heimberry
+
+**Betriebsanforderungen (SPOF-Mitigation):**
+* **Monitoring:** Erreichbarkeit und DNS-Antwortzeiten müssen extern (z.B. vom Heimserver) überwacht werden.
+* **Recovery:** Automatischer Docker-Restart bei Crash; dokumentierte manuelle Restart-Prozedur für das OS.
+* **Backup:** Tägliche Backups der Pi-hole-Konfiguration und Tailscale-State auf ein externes Ziel.
 
 ---
 
@@ -80,7 +85,7 @@ linked_plans: []
 
 **Explizit ausgeschlossen:**
 
-* kein DNS
+* kein primäres DNS
 * kein VPN-Core
 * keine Dev-Primärumgebung
 
@@ -88,6 +93,7 @@ linked_plans: []
 
 * alle Services nur über Caddy erreichbar
 * keine direkten Containerports
+* stellt Monitoring-Watchdog für Heimberry bereit
 
 ---
 
@@ -107,7 +113,7 @@ linked_plans: []
 **Explizit ausgeschlossen:**
 
 * keine Netzwerkautorität
-* kein Proxy / DNS
+* kein Proxy / primäres DNS
 
 **Invarianten:**
 
@@ -146,7 +152,7 @@ linked_plans: []
 
 * ausschließlich **Tailscale**
 
-Heimberry:
+Heimberry (Primärer Router/DNS):
 
 ```bash
 tailscale up \
@@ -163,7 +169,7 @@ tailscale up \
 
 ---
 
-## 3. DNS-Architektur (erzwingbar gemacht)
+## 3. DNS-Architektur & Resilienz (erzwingbar gemacht)
 
 ### 3.1 Root
 
@@ -174,25 +180,26 @@ tailscale up \
 * `heimgewebe.home.arpa`
 * `weltgewebe.home.arpa`
 
-### 3.3 Harte Regeln
+### 3.3 Harte Regeln & Resilienz-Strategie
 
-* Heimberry = einziger Nameserver
-* Router verteilt **nur Heimberry als DNS**
-* Tailscale DNS → Heimberry
-* keine externen Resolver für interne Domains
+* **Primär:** Heimberry = primärer Nameserver für alle Zonen.
+* **Secondary/Fallback (Neu):** Tailscale MagicDNS dient als "Read-Only Fallback" für kritische Knoten-IPs, falls Heimberry ausfällt, jedoch ohne Ad-Filtering oder komplexe CNAME-Auflösung.
+* Router verteilt **Heimberry als DNS 1** (DNS 2 bleibt leer, um inkonsistentes Verhalten der Clients zu verhindern).
+* Tailscale DNS → Heimberry.
 
-### 3.4 Enforcement (neu)
+### 3.4 Enforcement (Konkretisiert)
 
-Clients müssen:
+Clients müssen explizit konfiguriert werden.
 
+**Mechanismen:**
+* **Linux/Server (`resolv.conf`):** Hardcoded auf `nameserver 192.168.178.2`.
+* **Tailscale Admin Console:** Global Nameserver auf `192.168.178.2` gesetzt, Override Local DNS aktiviert.
+* **Router DHCP:** DHCP-Option 6 (DNS) verteilt ausschließlich `192.168.178.2`.
+
+**Überprüfbare Bedingung (CI/Monitoring):**
 ```bash
-resolv.conf → 192.168.178.2
-```
-
-Optionaler Guard:
-
-```bash
-iptables: block outbound DNS except Heimberry
+# Muss immer eine IP liefern, nicht NXDOMAIN oder Timeout
+dig @192.168.178.2 leitstand.heimgewebe.home.arpa +short
 ```
 
 ---
@@ -205,9 +212,9 @@ Client → Pi-hole → Unbound → Root
 
 ### Invarianten
 
-* kein externer Upstream
-* keine zweite Resolverinstanz
-* keine lokalen Overrides
+* kein externer Upstream im Pi-hole (immer Unbound)
+* keine zweite aktive *vollwertige* Resolverinstanz (MagicDNS ist nur Notnagel)
+* keine lokalen Overrides in `/etc/hosts` für Produktionsdienste
 
 ---
 
@@ -231,10 +238,10 @@ leitstand.heimgewebe.home.arpa {
 }
 ```
 
-### Enforcement
+### Enforcement (Konkretisiert)
 
-* Docker: keine exposed ports
-* Firewall: block direct container access
+* **Docker Compose:** Ports nur an `127.0.0.1` oder spezifisch an das Caddy-Netzwerk binden. Kein `ports: - "3000:3000"` ohne IP-Bindung.
+* **Host Firewall (UFW/iptables):** Blockiere Eingehenden Traffic auf nicht-Caddy/SSH Ports aus dem LAN/Tailnet.
 
 ---
 
@@ -253,7 +260,7 @@ leitstand.heimgewebe.home.arpa {
 ### DNS-Konfig
 
 * Nameserver → Heimberry
-* MagicDNS optional (nicht führend)
+* MagicDNS aktiv als Fallback-Ebene
 
 ### Invarianten
 
@@ -299,6 +306,7 @@ iPad → Heimserver → SSH/code-server
 ### Heim-PC
 
 * Sunshine Ports (Tailnet-only)
+* 22 (SSH)
 
 ### Global
 
@@ -316,7 +324,7 @@ iPad → Heimserver → SSH/code-server
 ### Enforcement
 
 * Router IPv6 aus
-* OS-Level deaktiviert
+* OS-Level (`sysctl net.ipv6.conf.all.disable_ipv6=1`) deaktiviert
 
 ### Aktivierung nur wenn:
 
@@ -344,6 +352,7 @@ iPad → Heimserver → SSH/code-server
 
 ### Erweiterung
 
+* **Heimberry Health-Check:** Skript auf dem Heimserver prüft minütlich DNS-Auflösung und alarmiert bei Ausfall.
 * zentraler Log-Aggregator (optional)
 * Query-Tracing möglich
 
@@ -373,85 +382,84 @@ DNS → Caddy → Container
 
 ---
 
-## 13. Failure-Modell (neu, entscheidend)
+## 13. Failure-Tiering (Fehlertoleranz-Modell)
 
-### Verhalten
+Das System muss vorhersehbar reagieren, wenn Komponenten ausfallen.
 
-| Komponente fällt aus | Wirkung                              |
-| -------------------- | ------------------------------------ |
-| Heimberry            | kein DNS → kompletter Zugriff stoppt |
-| Heimserver           | DNS ok, aber Services down           |
-| Heim-PC              | Dev nicht erreichbar                 |
+### Zustand 1: Normalbetrieb
+Alle Systeme online.
+* **Routing:** FQDNs werden via Heimberry aufgelöst.
+* **Services:** Voller Zugriff via Caddy mit TLS.
+
+### Zustand 2: Degradierter Betrieb (Heimberry offline)
+Heimberry (DNS) fällt aus, aber Heimserver & PC laufen noch.
+* **Auswirkung:** `.home.arpa` DNS-Auflösung schlägt global fehl. Ad-Filtering ist inaktiv.
+* **Degraded Access Path (Überleben):**
+  * Tailscale MagicDNS erlaubt weiterhin Zugriff auf die direkten Node-Namen (z.B. `heimserver` statt `leitstand.heimgewebe.home.arpa`).
+  * SSH-Zugriff über IP (`192.168.178.46` oder Tailscale-IP) bleibt erhalten.
+  * Caddy-Dienste sind temporär gestört, können aber über IP-Aufrufe (mit Zertifikatswarnungen) oder lokale `/etc/hosts` Notfall-Einträge auf Admin-Clients erreicht werden.
+* **Aktion:** Prio 1 Restart Heimberry. Services laufen im Hintergrund weiter.
+
+### Zustand 3: Total Failure (Heimserver offline)
+Heimserver (Proxy/Services) fällt aus.
+* **Auswirkung:** Applikationen nicht erreichbar. DNS funktioniert weiterhin, liefert aber "Connection Refused".
+* **Aktion:** Direkter SSH-Zugriff auf Heimserver zur Fehlerbehebung.
 
 ### Designziel
-
-→ Fehler sind **lokalisierbar und eindeutig**
-
----
-
-## 14. Migrationsplan (geschärft)
-
-### Phase 1 — Truth
-
-* Heimberry deployen
-* DNS vollständig migrieren
-* Router DNS erzwingen
-
-**Stop:**
-
-```bash
-dig leitstand.home.arpa
-```
+Fehler sind **lokalisierbar, eindeutig und erlauben administrativen Notfallzugriff.**
 
 ---
+
+## 14. Gehärteter Migrationsplan
+
+### Phase 1 — Truth (Risiko-Minimiert)
+
+* Heimberry deployen & konfigurieren
+* **Parallelbetrieb:** Router DNS bleibt vorerst unverändert. Einzelne Clients (z.B. Admin-PC) manuell auf Heimberry umstellen.
+* **Validierung:** `dig @192.168.178.2 google.com` und `dig @192.168.178.2 leitstand.heimgewebe.home.arpa` müssen stabil antworten.
+* Router DNS auf Heimberry umstellen (mit 24h Überwachungsphase).
+* **Rollback-Plan:** Bei Störungen im LAN Router-DHCP sofort zurück auf Provider-DNS stellen.
 
 ### Phase 2 — Access
 
 * Tailscale auf allen Geräten
 * Subnet Routing aktivieren
+* Tailscale DNS auf Heimberry lenken
 
-**Stop:**
-iPad erreicht interne FQDNs
-
----
+**Validierung:** iPad erreicht interne FQDNs ohne lokales WLAN.
 
 ### Phase 3 — Service
 
 * Caddy konsolidieren
-* Container isolieren
+* Container-Ports von `0.0.0.0` auf `127.0.0.1` oder internes Docker-Netz umstellen.
 
-**Stop:**
-kein direkter Portzugriff
-
----
+**Validierung:** `curl http://heimserver:3000` (direkter Port) muss fehlschlagen, `curl https://leitstand.heimgewebe.home.arpa` muss funktionieren.
 
 ### Phase 4 — Interaction
 
 * Sunshine stabilisieren
 
----
-
 ### Phase 5 — Cleanup
 
 * WireGuard entfernen
-* alte DNS löschen
+* alte DNS (alte Pi-holes etc.) löschen
 
 ---
 
 ## 15. Invarianten (unverhandelbar)
 
-1. DNS = Heimberry
+1. DNS = Heimberry (primär)
 2. Overlay = Tailscale
 3. Proxy = Heimserver
 4. Dev = Heim-PC
-5. kein Splitbrain
+5. kein Splitbrain (keine zwei gleichwertigen Wahrheiten)
 6. keine Direkt-Exposures
 
 ---
 
 ## 16. Anti-Patterns
 
-* Dual DNS
+* Dual DNS (zwei unterschiedliche DNS Server im DHCP, führt zu zufälligen Ergebnissen)
 * Dual VPN
 * mehrere Proxies
 * exposed Container
@@ -474,22 +482,21 @@ kein direkter Portzugriff
 → Wahrheit zentral
 → Zugriff flexibel
 → Ausführung isoliert
-→ Regeln erzwingbar
+→ Regeln erzwingbar und bei Ausfall vorhersehbar
 
 ---
 
 ## 18. Unsicherheits- & Interpolationsanalyse
 
-**Unsicherheitsgrad:** 0.22
+**Unsicherheitsgrad:** 0.15 (gesenkt durch Failure-Tiering)
 Ursachen:
 
 * reale Last Heimberry unbekannt
-* Router-Verhalten variabel
-* Client-Compliance nicht garantiert
+* Client-Verhalten bei MagicDNS Fallback im Detail zu testen
 
-**Interpolationsgrad:** 0.18
+**Interpolationsgrad:** 0.20
 Annahmen:
 
-* vollständige DNS-Disziplin möglich
-* keine externen Anforderungen an IPv6
-* Tailscale stabil akzeptiert
+* vollständige DNS-Disziplin ist operativ durchhaltbar
+* MagicDNS reicht als administrativer Notfall-Zugriff
+* Heimberry-Hardware ist hinreichend stabil
