@@ -1,6 +1,0 @@
-id: role-reverse-proxy
-name: Reverse Proxy
-kind: infrastructure
-criticality: high
-exclusive: true
-description: Ingress and TLS termination (e.g. Caddy)

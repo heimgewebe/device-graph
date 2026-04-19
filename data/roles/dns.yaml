@@ -1,6 +1,0 @@
-id: role-dns
-name: DNS Resolver
-kind: infrastructure
-criticality: high
-exclusive: true
-description: Provides local DNS resolution (e.g. Pi-hole)

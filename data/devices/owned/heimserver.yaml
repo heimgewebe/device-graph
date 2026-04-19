@@ -1,7 +1,0 @@
-id: dev-heimserver-01
-name: heimserver
-status: active
-type: mini-pc
-ownership: owned
-category: server
-visibility: direct

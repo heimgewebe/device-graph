@@ -1,3 +1,3 @@
 # Trust Zones Blaupause
 
-(WIP)
+(WIP – Strukturplatzhalter. Noch keine inhaltliche Ausformulierung.)

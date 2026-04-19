@@ -1,8 +1,3 @@
 # Migration Heimberry Blaupause
 
-- aktuelle Rollenverteilung
-- Zielbild
-- offene Unsicherheiten
-- Risiken
-- bewusst spekulative Elemente
-- was bestätigt, was nur plausibel ist
+(WIP – Strukturplatzhalter. Noch keine inhaltliche Ausformulierung.)

@@ -1,7 +1,0 @@
-assignments:
-  - role: role-dns
-    device: dev-heimserver-01
-  - role: role-vpn
-    device: dev-heimserver-01
-  - role: role-reverse-proxy
-    device: dev-heimserver-01

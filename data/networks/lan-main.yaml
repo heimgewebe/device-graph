@@ -1,7 +1,0 @@
-id: net-lan-main
-name: Main LAN
-kind: lan
-cidr_v4: 192.168.178.0/24
-gateway_v4: 192.168.178.1
-scope: local
-transport: ip

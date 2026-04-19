@@ -1,24 +1,67 @@
 # Agent Guidelines
 
-**Reading Order:**
+## Current Phase: Structure Only
+
+This repository is currently in **structure-only mode**.
+
+Your task is to maintain and improve the **repository structure**, not to populate it with substantive content.
+
+## Read First
+
 1. `README.md`
 2. `AGENTS.md`
 3. `docs/index.md`
 
-**Canonical Paths:**
-- `data/` is the sole source of truth for topology data.
-- `schemas/` defines the structural bounds for `data/`.
+## Core Rule
 
-**Generated Paths:**
-- Do NOT manually edit anything in `docs/_generated/`.
+Do **not** add substantial content to:
 
-**Assignment vs Relation Rule:**
-- Use `data/assignments/` strictly for role-to-device mapping.
-- Use `data/relations/` strictly for general graph edges. Never create `HAS_ROLE` relations here.
+* `docs/blueprints/`
+* `docs/plans/`
+* `docs/reference/`
+* `data/`
 
-**Blueprint vs Plan Rule:**
-- `docs/blueprints/`: Conceptual target architectures, ontology definitions.
-- `docs/plans/`: Operative roadmaps, execution tasks.
+At this stage, these paths exist to define future structure only.
 
-**Required Validation:**
-- Any modification to `data/` or `schemas/` REQUIRES running `make validate` before committing.
+## Allowed Work
+
+You may:
+
+* create directories and placeholder files
+* improve navigation structure
+* improve repository metadata
+* improve validation tooling
+* improve schema scaffolding
+* improve Makefile / CI scaffolding
+* improve path discipline and guardrails
+
+## Forbidden Work
+
+You must not:
+
+* define final ontology content
+* define final relation semantics in detail
+* define concrete migration plans
+* define operational next steps in detail
+* add real device inventory entries
+* add real network topology content
+* add generated documentation manually
+
+## Generated Files
+
+Anything under `docs/_generated/` is generated-only and must never be manually edited.
+
+## Data Model Discipline
+
+* `data/assignments/` is reserved for role assignments
+* `data/relations/` is reserved for general graph edges
+* no `HAS_ROLE` relation may be introduced in `data/relations/`
+
+## Validation Discipline
+
+Changes to `schemas/`, `scripts/validate/`, `Makefile`, or repository structure must preserve `make validate`.
+
+## If Unsure
+
+Prefer placeholders over premature meaning.
+Structure first. Content later.

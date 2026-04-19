@@ -1,39 +1,36 @@
 version: 1
+phase: structure-only
 enforcement_level: strict
 
 rules:
-  - id: rule-01-no-redundant-assignments
-    description: "Role assignments must only exist in data/assignments/. No HAS_ROLE edges in relations/."
-  - id: rule-02-schema-compliance
-    description: "All files in data/ must pass validation against their respective schemas/ definition."
-  - id: rule-03-epistemic-state
-    description: "Assignments in target.yaml must have a confidence field (confirmed, planned, speculative)."
-  - id: rule-04-explicit-heterogeneity
-    description: "Devices must explicitly declare their visibility and category."
+  - id: rule-01-structure-only
+    description: "No substantive content in docs/blueprints, docs/plans, docs/reference, or data during structure-only phase."
+  - id: rule-02-no-redundant-assignments
+    description: "Role assignments belong only in data/assignments."
+  - id: rule-03-generated-files
+    description: "Files under docs/_generated must never be edited manually."
+  - id: rule-04-schema-discipline
+    description: "Schema and validation scaffolding must remain coherent."
 
 safe_read_paths:
   - README.md
   - AGENTS.md
   - docs/**
-  - data/**
   - schemas/**
+  - scripts/**
+  - Makefile
 
 guarded_write_paths:
+  - docs/**
   - data/**
   - schemas/**
-  - docs/reference/**
-  - docs/blueprints/**
-  - docs/plans/**
+  - scripts/**
+  - Makefile
+  - repo.meta.yaml
+  - agent-policy.yaml
 
 forbidden_write_paths:
   - docs/_generated/**
 
-generated_paths:
-  - docs/_generated/**
-
 required_checks:
-  - scripts/validate/validate_devices.py
-  - scripts/validate/validate_assignments.py
-  - scripts/validate/validate_relations.py
-  - scripts/validate/validate_networks.py
-  - scripts/validate/validate_roles.py
+  - make validate
