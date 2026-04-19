@@ -1,67 +1,181 @@
 # Agent Guidelines
 
-## Current Phase: Structure Only
+This repository models devices, networks, roles, relationships, trust zones, and migration states.
 
-This repository is currently in **structure-only mode**.
+It is a **model-repo**, not an infrastructure repo.
 
-Your task is to maintain and improve the **repository structure**, not to populate it with substantive content.
+Your responsibility is to **maintain correctness, consistency, and explicitness of the model**.
 
-## Read First
+---
+
+## 1. Read Order (Mandatory)
+
+Before making any changes, read:
 
 1. `README.md`
-2. `AGENTS.md`
-3. `docs/index.md`
+2. `docs/index.md`
+3. `docs/reference/`
+4. relevant files in `data/` and `schemas/`
 
-## Core Rule
+---
 
-Do **not** add substantial content to:
+## 2. Core Principles
 
-* `docs/blueprints/`
-* `docs/plans/`
-* `docs/reference/`
-* `data/`
+### 2.1 Explicit over implicit
+All relevant information must be explicitly modeled.
 
-At this stage, these paths exist to define future structure only.
+- No hidden assumptions
+- No inferred meaning without marking it
+- No silent defaults
 
-## Allowed Work
+---
 
-You may:
+### 2.2 Separation of Concerns
 
-* create directories and placeholder files
-* improve navigation structure
-* improve repository metadata
-* improve validation tooling
-* improve schema scaffolding
-* improve Makefile / CI scaffolding
-* improve path discipline and guardrails
+| Concept | Location |
+|--------|--------|
+| Devices | `data/devices/` |
+| Networks | `data/networks/` |
+| Roles | `data/roles/` |
+| Role assignments | `data/assignments/` |
+| Relationships | `data/relations/` |
 
-## Forbidden Work
+Strict rules:
 
-You must not:
+- Role ↔ Device mapping ONLY in `data/assignments/`
+- NEVER represent roles via relations (`HAS_ROLE` is forbidden)
+- `data/relations/` is only for graph edges
 
-* define final ontology content
-* define final relation semantics in detail
-* define concrete migration plans
-* define operational next steps in detail
-* add real device inventory entries
-* add real network topology content
-* add generated documentation manually
+---
 
-## Generated Files
+### 2.3 Epistemic Discipline
 
-Anything under `docs/_generated/` is generated-only and must never be manually edited.
+All future or uncertain states must be explicitly marked.
 
-## Data Model Discipline
+Use:
 
-* `data/assignments/` is reserved for role assignments
-* `data/relations/` is reserved for general graph edges
-* no `HAS_ROLE` relation may be introduced in `data/relations/`
+- `status` → real-world existence
+- `confidence` → assignment certainty
+- `visibility` → observability
+- optional future: `source_kind`, `evidence_level`
 
-## Validation Discipline
+Never present speculative architecture as fact.
 
-Changes to `schemas/`, `scripts/validate/`, `Makefile`, or repository structure must preserve `make validate`.
+---
 
-## If Unsure
+### 2.4 Heterogeneity is mandatory
 
-Prefer placeholders over premature meaning.
-Structure first. Content later.
+Devices must reflect real-world diversity.
+
+At minimum:
+
+- `category`
+- `visibility`
+
+Recommended:
+
+- `management_model`
+- `trust_zone`
+
+Do not assume:
+- IP connectivity
+- direct access
+- uniform device capabilities
+
+---
+
+### 2.5 Graph Integrity
+
+All graph edges must be valid and meaningful.
+
+Rules:
+
+- All `source` and `target` IDs must exist
+- Relations must follow `docs/reference/relation-types.md`
+- Avoid redundant or duplicate edges
+- Direction matters
+
+---
+
+## 3. Validation (Non-Negotiable)
+
+Every change to `data/` or `schemas/` requires:
+
+```bash
+make validate
+```
+
+Validation includes:
+
+* schema compliance
+* relation integrity
+* cross-entity consistency
+
+No validation → no valid change.
+
+---
+
+## 4. Generated Content
+
+* `docs/_generated/` is **read-only**
+* Never manually edit generated files
+* If inconsistent → fix source, not output
+
+---
+
+## 5. Blueprints vs Plans
+
+| Type       | Location           | Purpose                 |
+| ---------- | ------------------ | ----------------------- |
+| Blueprints | `docs/blueprints/` | conceptual architecture |
+| Plans      | `docs/plans/`      | execution and steps     |
+
+Rules:
+
+* Blueprints may be incomplete, speculative, or exploratory
+* Plans must be actionable and grounded
+* Do not mix both
+
+---
+
+## 6. What Good Contributions Look Like
+
+A good change:
+
+* improves clarity of the model
+* reduces ambiguity
+* respects schema constraints
+* keeps epistemic states explicit
+* maintains graph consistency
+
+A bad change:
+
+* introduces implicit assumptions
+* mixes concepts (roles vs relations)
+* hides uncertainty
+* breaks validation
+* duplicates information
+
+---
+
+## 7. If Unsure
+
+Prefer:
+
+* explicit fields over clever shortcuts
+* simple structure over implicit logic
+* marking uncertainty over guessing
+
+The model should be **inspectable, explainable, and machine-readable**.
+
+---
+
+## 8. Mental Model
+
+This repository is not a configuration.
+
+It is a **map of reality and intention**.
+
+Reality is messy.
+Your job is not to simplify it —
+your job is to **represent it faithfully**.
