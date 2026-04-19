@@ -1,10 +1,17 @@
 ---
-document_type: blueprint
-status: final
-precedence: target-semantics
-linked_plans:
+id: heimnetz-2026
+title: "Blaupause: Heimnetz 2026+ (Deterministische Layer-Architektur, gehärtet & durchsetzbar)"
+doc_type: blueprint
+role: target-semantics
+status: active
+canonicality: canonical
+last_reviewed: 2026-04-19
+summary: "Architektur-Blaupause für eine deterministische, ebenen-basierte Heimnetz-Infrastruktur mit klarem Failure-Tiering und Enforcement-Regeln."
+depends_on: []
+related_docs:
   - ../plans/roadmap.md
   - ../plans/next-steps.md
+verifies_with: []
 ---
 # **Blaupause: Heimnetz 2026+ (Deterministische Layer-Architektur, gehärtet & durchsetzbar)**
 
@@ -184,9 +191,9 @@ tailscale up \
 
 ### 3.3 Harte Regeln & Resilienz-Strategie
 
-* **Primär:** Heimberry = primärer Nameserver für alle Zonen.
-* **Secondary/Fallback (Neu):** Tailscale MagicDNS dient als "Read-Only Fallback" für kritische Knoten-IPs, falls Heimberry ausfällt, jedoch ohne Ad-Filtering oder komplexe CNAME-Auflösung.
-* Router verteilt **Heimberry als DNS 1** (DNS 2 bleibt leer, um inkonsistentes Verhalten der Clients zu verhindern).
+* **Primär:** Heimberry = primärer Nameserver für alle Zonen. `home.arpa` bleibt exklusiv Heimberry-geführt.
+* **Secondary/Fallback (Neu):** Tailscale MagicDNS ist **NICHT** sekundäre Wahrheit für `home.arpa`. Es ist ein **separater administrativer Notzugangspfad** außerhalb des kanonischen Heimnetz-Namensraums für kritische Knoten-IPs, falls Heimberry ausfällt. Ein degradierter Betrieb bedeutet hier nicht, dass sich die DNS-Wahrheit verlagert, sondern nur, dass ein eingeschränkter Admin-Zugriff möglich bleibt.
+* **Router DHCP Ziel:** Kein konkurrierender zweiter Resolver im DHCP. Keine gleichrangigen DNS-Server verteilen. Notfallpfade laufen bewusst außerhalb von DHCP.
 * Tailscale DNS → Heimberry.
 
 ### 3.4 Enforcement (Konkretisiert)
@@ -242,8 +249,11 @@ leitstand.heimgewebe.home.arpa {
 
 ### Enforcement (Konkretisiert)
 
-* **Docker Compose:** Ports nur an `127.0.0.1` oder spezifisch an das Caddy-Netzwerk binden. Kein `ports: - "3000:3000"` ohne IP-Bindung.
-* **Host Firewall (UFW/iptables):** Blockiere Eingehenden Traffic auf nicht-Caddy/SSH Ports aus dem LAN/Tailnet.
+* **Docker Compose (Heimserver):** App-Container binden Ports ausschließlich an `127.0.0.1` oder spezifisch an ein isoliertes Caddy-Netzwerk. Striktes Verbot von `ports: - "3000:3000"` ohne IP-Bindung für alle Dienste, außer Caddy selbst. Caddy verwaltet als einziger Dienst die Host-Ports 80/443.
+* **Host Firewall (UFW/iptables):**
+  * **Heimberry:** Erlaubt nur Port 53 (DNS) aus dem LAN/Tailnet sowie Tailscale-interne Ports. Pi-hole Webinterface ist nur über Tailscale erreichbar.
+  * **Heimserver:** Erlaubt nur Ports 80/443 (Caddy) aus dem LAN/Tailnet und Port 22 (SSH) als Admin-Zugang. Alle direkten App-Ports von außen sind strikt verboten.
+  * **Heim-PC:** Erlaubt Sunshine-Ports ausschließlich Tailnet-only. SSH ist Tailnet-only.
 
 ---
 
@@ -262,7 +272,7 @@ leitstand.heimgewebe.home.arpa {
 ### DNS-Konfig
 
 * Nameserver → Heimberry
-* MagicDNS aktiv als Fallback-Ebene
+* MagicDNS aktiv, aber streng limitiert als separater administrativer Notzugang (nicht als kanonischer Fallback)
 
 ### Invarianten
 
@@ -297,18 +307,19 @@ iPad → Heimserver → SSH/code-server
 
 ### Heimberry
 
-* 53 (DNS)
+* 53 (DNS) - LAN & Tailnet
 * Tailscale intern
+* Pi-hole Webinterface - Tailnet-only
 
 ### Heimserver
 
-* 80/443 (Caddy)
-* 22 (SSH)
+* 80/443 (Caddy) - LAN & Tailnet
+* 22 (SSH) - LAN & Tailnet
 
 ### Heim-PC
 
-* Sunshine Ports (Tailnet-only)
-* 22 (SSH)
+* Sunshine Ports - Tailnet-only
+* 22 (SSH) - Tailnet-only
 
 ### Global
 
@@ -371,7 +382,7 @@ Client → DNS → Proxy → Service
 
 ### Verbote
 
-* `/etc/hosts` Overrides
+* `/etc/hosts` Overrides bleiben im Normalbetrieb strikt verboten. Temporäre Incident-Overrides sind nur auf definierten Admin-Clients zulässig, sind dokumentations- und rollbackpflichtig, und gelten ausdrücklich nicht als kanonische Konfiguration.
 * lokale DNS-Resolver
 * direkte Ports
 * Shadow-Proxies
@@ -393,19 +404,29 @@ Alle Systeme online.
 * **Routing:** FQDNs werden via Heimberry aufgelöst.
 * **Services:** Voller Zugriff via Caddy mit TLS.
 
-### Zustand 2: Degradierter Betrieb (Heimberry offline)
+### Zustand 2: Degradierter Admin-Zugriff (Heimberry offline)
 Heimberry (DNS) fällt aus, aber Heimserver & PC laufen noch.
-* **Auswirkung:** `.home.arpa` DNS-Auflösung schlägt global fehl. Ad-Filtering ist inaktiv.
-* **Degraded Access Path (Überleben):**
-  * Tailscale MagicDNS erlaubt weiterhin Zugriff auf die direkten Node-Namen (z.B. `heimserver` statt `leitstand.heimgewebe.home.arpa`).
-  * SSH-Zugriff über IP (`192.168.178.46` oder Tailscale-IP) bleibt erhalten.
-  * Caddy-Dienste sind temporär gestört, können aber über IP-Aufrufe (mit Zertifikatswarnungen) oder lokale `/etc/hosts` Notfall-Einträge auf Admin-Clients erreicht werden.
-* **Aktion:** Prio 1 Restart Heimberry. Services laufen im Hintergrund weiter.
+* **Was funktioniert noch:** Physische Verbindungen, IP-Routing, Tailscale-Verbindungen. Services laufen im Hintergrund weiter.
+* **Was ist kaputt:** Kanonische `.home.arpa` DNS-Auflösung schlägt global fehl. Ad-Filtering ist inaktiv.
+* **Gültige Namenspfade:** Nur MagicDNS Node-Namen (`heimserver`, `heim-pc`) als administrativer Notzugang. Kanonische FQDNs sind offline.
+* **Zulässige Zugriffswege (Degraded Access Path):**
+  * SSH-Zugriff über IP (`192.168.178.46` oder Tailscale-IP).
+  * Administrative Zugriffe über MagicDNS Node-Namen.
+* **Temporäre Ausnahmen:** Lokale `/etc/hosts` Notfall-Einträge auf definierten Admin-Clients für kritische Caddy-Dienste (dokumentations- und rollbackpflichtig).
+* **Aktion:** Prio 1 Restart Heimberry.
+
+### Zustand 2b: Degradierter App-Betrieb
+DNS ist online, aber Reverse Proxy (Caddy) ist in Teilen gestört oder intern blockiert.
+* **Was funktioniert noch:** DNS-Auflösung.
+* **Was ist kaputt:** App-Erreichbarkeit über FQDNs.
+* **Zulässige Zugriffswege:** Lokales Port-Forwarding (SSH-Tunnel) an `127.0.0.1` des Heimservers zur Diagnose. Direkte IP-Zugriffe bleiben verboten.
 
 ### Zustand 3: Total Failure (Heimserver offline)
 Heimserver (Proxy/Services) fällt aus.
-* **Auswirkung:** Applikationen nicht erreichbar. DNS funktioniert weiterhin, liefert aber "Connection Refused".
-* **Aktion:** Direkter SSH-Zugriff auf Heimserver zur Fehlerbehebung.
+* **Was funktioniert noch:** DNS funktioniert weiterhin (wenn Heimberry online), liefert aber "Connection Refused" auf FQDNs.
+* **Was ist kaputt:** Alle Applikationen nicht erreichbar. Reverse Proxy offline.
+* **Zulässige Zugriffswege:** Direkter physischer oder SSH-Zugriff auf Heimserver (via IP oder MagicDNS) zur Fehlerbehebung.
+* **Aktion:** Wiederherstellung des Service-Layers.
 
 ### Designziel
 Fehler sind **lokalisierbar, eindeutig und erlauben administrativen Notfallzugriff.**
@@ -502,3 +523,13 @@ Annahmen:
 * vollständige DNS-Disziplin ist operativ durchhaltbar
 * MagicDNS reicht als administrativer Notfall-Zugriff
 * Heimberry-Hardware ist hinreichend stabil
+
+---
+
+## 19. Abgrenzung: Kanonische Wahrheit vs. Administrativer Notpfad
+
+Um Splitbrain-Szenarien und Architekturdrift zu vermeiden, wird hiermit explizit getrennt:
+
+* **Kanonischer DNS-Raum (`home.arpa`):** Die exklusive, autoritative Quelle für alle Dienste und Endpunkte im Normalbetrieb. Wird ausschließlich von Heimberry bereitgestellt.
+* **Notzugang über Tailscale/MagicDNS:** Ein separater, isolierter Namensraum (`Node-Namen`), der **nicht** Teil der kanonischen Architektur ist. Er dient ausschließlich dem administrativen Notfallzugriff, wenn der kanonische Raum gestört ist.
+* **Nicht-kanonische Incident-Hilfen:** Temporäre Overrides (z.B. `/etc/hosts` auf Admin-Maschinen) sind explizit keine Architekturmerkmale, sondern operative Werkzeuge für den Ausfallmodus. Sie unterliegen einer strikten Rollback-Pflicht nach Behebung des Incidents.
