@@ -1,0 +1,11 @@
+id: ipad-10
+name: iPad 10
+status: active
+type: tablet
+ownership: owned
+
+category: client
+visibility: direct
+
+management_model: unmanaged
+trust_zone: mobile

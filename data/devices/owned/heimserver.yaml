@@ -1,0 +1,16 @@
+id: heimserver
+name: Heimserver
+status: active
+type: server
+ownership: owned
+
+model: Lenovo ThinkCentre M70q Gen.4
+cpu: Intel i7-13700T
+ram_gb: 32
+storage: 512GB NVMe
+
+category: compute
+visibility: direct
+
+management_model: docker-host
+trust_zone: core
