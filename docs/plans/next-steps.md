@@ -1,7 +1,17 @@
 # Next Steps
 
-**Bezieht sich auf**
+## Dokumenttyp
+Plan
+
+## Funktion
+Ausführungsreihenfolge / Vollzugspfad
+
+## Zugeordnete Blueprints
 - [Device Ontology Blaupause](../blueprints/device-ontology-blaupause.md)
 - [Migration Heimberry Blaupause](../blueprints/migration-heimberry-blaupause.md)
 
-(WIP – Strukturplatzhalter. Noch keine inhaltliche Ausformulierung.)
+## Vorrang
+Dieses Dokument regelt Ausführungsreihenfolge, nicht Zielsemantik.
+
+## Status
+WIP

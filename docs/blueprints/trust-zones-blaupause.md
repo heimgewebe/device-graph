@@ -1,6 +1,16 @@
 # Trust Zones Blaupause
 
-**Zugeordnete Pläne**
+## Dokumenttyp
+Blueprint
+
+## Funktion
+Sollbild / Zielsemantik
+
+## Zugeordnete Pläne
 - [Roadmap](../plans/roadmap.md)
 
-(WIP – Strukturplatzhalter. Noch keine inhaltliche Ausformulierung.)
+## Vorrang
+Dieses Dokument regelt Zielsemantik, nicht Ausführungsreihenfolge.
+
+## Status
+WIP
