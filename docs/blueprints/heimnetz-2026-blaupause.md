@@ -17,7 +17,11 @@ verifies_with: []
 
 ---
 
-## 0. Leitprinzipien (kanonisch, präzisiert)
+> **Hinweis zur Repository-Grenze:**
+> Dieses Dokument im `device-graph`-Repo definiert **ausschließlich die geräteübergreifende Modellsemantik** (Zielrollen, Invarianten, Trust-Zonen).
+> Jegliche operative Betriebslogik, hostspezifische Runbooks, konkrete Enforcement-Befehle, Detection-Scripts und Port-Regeln sind kanonisch im `heimserver`-Repo angesiedelt.
+
+## 0. Leitprinzipien (kanonisch, abstrahiert)
 
 1. **Single Source of Truth (SoT):**
    DNS/Name → **Heimberry** (erzwingbar, nicht nur intendiert)
@@ -168,13 +172,7 @@ Die Rolle als einziger DNS-Knoten macht den Heimberry zu einem strukturellen SPO
 
 * ausschließlich **Tailscale**
 
-Heimberry (Primärer Router/DNS):
-
-```bash
-tailscale up \
-  --advertise-routes=192.168.178.0/24 \
-  --accept-dns=false
-```
+Heimberry übernimmt die Rolle als primärer Tailscale Subnet Router. Konkrete Implementierungsbefehle sind im `heimserver`-Repo dokumentiert.
 
 ### 2.3 Routing-Invarianten
 
@@ -212,11 +210,6 @@ Clients müssen explizit konfiguriert werden.
 * **WEITGEHEND ERZWINGBAR:** Router DHCP (DHCP-Option 6 verteilt ausschließlich `192.168.178.2`, wird aber nur von kooperativen Clients übernommen).
 * **NUR DETEKTIERBAR / BEGRENZBAR:** Client-DoH/DoT-Verhalten.
 
-**Überprüfbare Bedingung (CI/Monitoring):**
-```bash
-# Muss immer eine IP liefern, nicht NXDOMAIN oder Timeout
-dig @192.168.178.2 leitstand.heimgewebe.home.arpa +short
-```
 
 **Client-Realität und operative Grenzen:**
 Determinismus ist im Netzwerk nur partiell erzwingbar. Realistisch problematische Klassen sind iOS/iPadOS (die oft eigene DNS-Wege bevorzugen), Browser mit integriertem DoH, sowie Smart Devices/IoT mit hartcodierten Resolvern. Maßnahmen: Bekannte DoH/DoT-Bootstrap-Server werden blockiert. Unkooperative Clients, die lokales DNS vollständig verweigern, werden isoliert (z.B. Gast-VLAN). Abweichungen sollen sichtbar gemacht, aber nicht um jeden Preis technisch (z.B. via SSL-Interception) verhindert werden.
@@ -257,13 +250,8 @@ leitstand.heimgewebe.home.arpa {
 }
 ```
 
-### Enforcement (Konkretisiert)
-
-* **Docker Compose (Heimserver):** App-Container binden Ports ausschließlich an `127.0.0.1` oder spezifisch an ein isoliertes Caddy-Netzwerk. Striktes Verbot von `ports: - "3000:3000"` ohne IP-Bindung für alle Dienste, außer Caddy selbst. Caddy verwaltet als einziger Dienst die Host-Ports 80/443.
-* **Host Firewall (UFW/iptables):**
-  * **Heimberry:** Erlaubt Port 53 (DNS) aus dem LAN und Tailnet sowie Tailscale-interne Ports. Pi-hole Webinterface ist strikt auf Tailnet-only (tailscale0 interface) beschränkt.
-  * **Heimserver:** Erlaubt Ports 80/443 (Caddy) aus dem LAN und Tailnet. Port 22 (SSH) als Admin-Zugang ist aus dem LAN und Tailnet erlaubt. Alle direkten App-Ports von außen sind strikt verboten.
-  * **Heim-PC:** Erlaubt Sunshine-Ports und Port 22 (SSH) ausschließlich Tailnet-only (tailscale0 interface).
+### Enforcement (Abstrakt)
+App-Container sind strikt an lokale oder isolierte Netze zu binden. Host-Firewalls müssen den Ingress auf die vorgesehenen Proxy/DNS/SSH-Ports begrenzen und zwischen LAN und Tailnet differenzieren. Die exakte Port-Disziplin und Firewall-Regularien sind im `heimserver`-Repo verankert.
 
 ---
 
@@ -451,7 +439,7 @@ Fehler sind **lokalisierbar, eindeutig und erlauben administrativen Notfallzugri
 
 * Heimberry deployen & konfigurieren
 * **Parallelbetrieb:** Router DNS bleibt vorerst unverändert. Einzelne Clients (z.B. Admin-PC) manuell auf Heimberry umstellen.
-* **Validierung:** `dig @192.168.178.2 google.com` und `dig @192.168.178.2 leitstand.heimgewebe.home.arpa` müssen stabil antworten.
+* **Validierung:** DNS-Auflösung über Heimberry ist stabil.
 * Router DNS auf Heimberry umstellen (mit 24h Überwachungsphase).
 * **Rollback-Plan:** Bei Störungen im LAN Router-DHCP sofort zurück auf Provider-DNS stellen.
 
@@ -469,7 +457,7 @@ Fehler sind **lokalisierbar, eindeutig und erlauben administrativen Notfallzugri
 * Caddy konsolidieren
 * Container-Ports von `0.0.0.0` auf `127.0.0.1` oder internes Docker-Netz umstellen.
 
-**Validierung:** `curl http://heimserver:3000` (direkter Port) muss fehlschlagen, `curl https://leitstand.heimgewebe.home.arpa` muss funktionieren.
+**Validierung:** Isolierte Apps sind ausschließlich über FQDN und HTTPS (Caddy) erreichbar.
 * **Rollback-Plan:** Revert der `docker-compose.yml` Port-Bindings auf `0.0.0.0`, falls Caddy-Routing unvorhergesehene Fehler wirft.
 
 ### Phase 4 — Interaction
@@ -563,52 +551,3 @@ Um Splitbrain-Szenarien und Architekturdrift zu vermeiden, wird hiermit explizit
 * **Nicht-kanonische Incident-Hilfen:** Temporäre Overrides (z.B. `/etc/hosts` auf Admin-Maschinen) sind explizit keine Architekturmerkmale, sondern operative Werkzeuge für den Ausfallmodus. Sie unterliegen einer strikten Rollback-Pflicht nach Behebung des Incidents.
 
 ---
-
-## 21. Runtime-Detection (Drift & DNS-Bypass)
-
-Das System hat Regeln; es benötigt zwingend Sichtbarkeit, um deren Einhaltung empirisch zu prüfen.
-
-**Erkennung von DNS-Bypass:**
-* Firewall-Logs (Router): Zählung von TCP/UDP Port 53, 853 (DoT) Traffic, der den Router ansteuert oder an externe IPs (z.B. 8.8.8.8, 1.1.1.1) gerichtet ist.
-* DNS-Metrik: Messung des Volumens an DNS-Queries am Heimberry pro Client. Unerklärliche Einbrüche weisen auf DoH-Aktivierung im Browser/OS hin.
-
-**Erkennung von Shadow-Configs:**
-* SSH-Logins und Caddy Access-Logs auswerten. Traffic auf inoffiziellen Ports identifizieren.
-* Nmap/Portscans aus dem Tailnet gegen Heimserver und Heimberry: Sind nur 80/443 und 22 offen?
-
-**Ziel-Metrik:** > 95% aller legitimen DNS-Requests im LAN/Tailnet werden vom Heimberry beantwortet.
-
----
-
-## 22. Operational Proof (Realitätscheck)
-
-Architektur-Annahmen müssen durch harte Realitätstests validiert werden, um vom Soll- in den Ist-Zustand zu wechseln.
-
-**Messbare Tests (quartalsweise):**
-* **DNS-Ausfall simulieren:** Heimberry-Docker-Container stoppen. Messen, ab wann Caddy/Clients Alarm schlagen.
-* **Recovery proben:** Heimberry hart rebooten.
-* **Client-Bypass provozieren:** Auf einem Test-Client manuell DoH aktivieren oder 8.8.8.8 eintragen. Prüfen, ob die Router-Firewall/Pi-hole greift oder der Client "entkommt".
-
-**Harte Zielwerte:**
-* **Real Measured Recovery (Heimberry OS-Reboot bis DNS antwortet):** < 5 Minuten.
-* **Erfolgsquote DNS-Disziplin:** Abfang-Rate unkooperativer Clients bei manuellem Bypass-Versuch > 90%.
-
----
-
-## 23. Minimales Notfall-Runbook
-
-Keine Theorie, sondern operative Handlung bei Totalausfall.
-
-**Szenario 1: Heimberry (DNS) tot**
-1. Zugriff: `ssh user@192.168.178.2` (oder via MagicDNS `ssh user@heimberry`).
-2. Docker prüfen: `docker ps | grep pihole`.
-3. Neustart: `docker-compose restart` oder `systemctl restart docker`.
-4. Hard-Reset: `sudo reboot`.
-5. *Wenn Hardware defekt:* Router DHCP-DNS manuell auf Provider-Standard (z.B. `1.1.1.1` oder Router-IP) ändern, um Internet für das LAN wiederherzustellen (führt zu Totalverlust lokaler FQDNs).
-
-**Szenario 2: Caddy (Reverse Proxy) kaputt**
-1. Zugriff: `ssh user@192.168.178.46` (oder via MagicDNS `ssh user@heimserver`).
-2. Logs prüfen: `docker logs caddy --tail 50`.
-3. Config Test: `docker exec -w /etc/caddy caddy caddy validate`.
-4. Neustart: `docker restart caddy`.
-5. Not-Zugriff: Via SSH lokales Port-Forwarding aufbauen (`ssh -L 3000:localhost:3000 user@heimserver`), um intern an die blockierten App-Ports (127.0.0.1) zu gelangen.
