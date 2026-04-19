@@ -7,32 +7,32 @@ import glob
 known_ids = set()
 
 # Lade Devices
-for fp in glob.glob('data/devices/**/*.yaml', recursive=True):
+for fp in sorted(glob.glob('data/devices/**/*.yaml', recursive=True)):
     with open(fp, 'r') as f:
         data = yaml.safe_load(f)
-        if 'id' in data:
+        if data and 'id' in data:
             known_ids.add(data['id'])
 
 # Lade Networks
-for fp in glob.glob('data/networks/*.yaml'):
+for fp in sorted(glob.glob('data/networks/*.yaml')):
     with open(fp, 'r') as f:
         data = yaml.safe_load(f)
-        if 'id' in data:
+        if data and 'id' in data:
             known_ids.add(data['id'])
 
 # Lade Roles
-for fp in glob.glob('data/roles/*.yaml'):
+for fp in sorted(glob.glob('data/roles/*.yaml')):
     with open(fp, 'r') as f:
         data = yaml.safe_load(f)
-        if 'id' in data:
+        if data and 'id' in data:
             known_ids.add(data['id'])
 
 # Prüfe Relations
 errors = 0
-for fp in glob.glob('data/relations/*.yaml'):
+for fp in sorted(glob.glob('data/relations/*.yaml')):
     with open(fp, 'r') as f:
         data = yaml.safe_load(f)
-        if 'relations' in data:
+        if data and isinstance(data.get('relations'), list):
             for i, rel in enumerate(data['relations']):
                 src = rel.get('source')
                 tgt = rel.get('target')

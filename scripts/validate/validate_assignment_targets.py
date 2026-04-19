@@ -8,14 +8,14 @@ known_devices = set()
 known_roles = set()
 
 # Lade Devices
-for fp in glob.glob('data/devices/**/*.yaml', recursive=True):
+for fp in sorted(glob.glob('data/devices/**/*.yaml', recursive=True)):
     with open(fp, 'r') as f:
         data = yaml.safe_load(f)
         if data and 'id' in data:
             known_devices.add(data['id'])
 
 # Lade Roles
-for fp in glob.glob('data/roles/*.yaml'):
+for fp in sorted(glob.glob('data/roles/*.yaml')):
     with open(fp, 'r') as f:
         data = yaml.safe_load(f)
         if data and 'id' in data:
@@ -23,10 +23,10 @@ for fp in glob.glob('data/roles/*.yaml'):
 
 # Prüfe Assignments
 errors = 0
-for fp in glob.glob('data/assignments/*.yaml'):
+for fp in sorted(glob.glob('data/assignments/*.yaml')):
     with open(fp, 'r') as f:
         data = yaml.safe_load(f)
-        if data and 'assignments' in data:
+        if data and isinstance(data.get('assignments'), list):
             for i, assign in enumerate(data['assignments']):
                 role = assign.get('role')
                 device = assign.get('device')
