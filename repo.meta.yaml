@@ -3,3 +3,28 @@ description: An infrastructure model mapping devices, networks, roles, relations
 version: 1.0.0
 owner: user
 status: active
+
+purpose:
+  kind: model-repo
+  primary_goal: "Kartographierung von Geräten, Netzwerken, Rollen, Beziehungen, Vertrauenszonen und Migrationen"
+
+entrypoints:
+  - README.md
+  - AGENTS.md
+  - docs/index.md
+
+data_roots:
+  - data/devices
+  - data/networks
+  - data/roles
+  - data/assignments
+  - data/relations
+
+docs_roots:
+  - docs
+  - docs/blueprints
+  - docs/plans
+  - docs/reference
+
+generated_roots:
+  - docs/_generated

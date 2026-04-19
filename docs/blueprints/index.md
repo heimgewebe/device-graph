@@ -1,0 +1,2 @@
+# Blueprints
+Entwurfslogik und Architekturziele.
