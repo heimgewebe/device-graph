@@ -7,8 +7,8 @@ Deine Aufgabe ist es, das Repo als **konsistentes, explizites und maschinenlesba
 ## Lies zuerst
 
 1. `README.md`
-2. `AGENTS.md`
-3. `repo.meta.yaml`
+2. `repo.meta.yaml`
+3. `AGENTS.md`
 4. `docs/index.md`
 5. relevante Dateien in `docs/reference/`, `data/` und `schemas/`
 
@@ -77,11 +77,6 @@ Wenn Blaupause und Plan auseinanderlaufen:
 * jede Abweichung muss explizit gemacht werden
 
 Alle Blaupausen und Pläne sollen wechselseitig aufeinander verweisen, damit ihre Beziehung für Menschen und Agents nachvollziehbar bleibt.
-
-If blueprints and plans diverge:
-- blueprints govern target semantics
-- plans govern execution order
-- divergence must be made explicit
 
 ## Referenzdisziplin
 

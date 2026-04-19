@@ -1,16 +1,10 @@
+---
+document_type: blueprint
+status: wip
+precedence: target-semantics
+linked_plans:
+  - ../plans/roadmap.md
+---
 # Trust Zones Blaupause
 
-## Dokumenttyp
-Blueprint
-
-## Funktion
-Sollbild / Zielsemantik
-
-## Zugeordnete Pläne
-- [Roadmap](../plans/roadmap.md)
-
-## Vorrang
-Dieses Dokument regelt Zielsemantik, nicht Ausführungsreihenfolge.
-
-## Status
-WIP
+(WIP – Strukturplatzhalter. Noch keine inhaltliche Ausformulierung.)
