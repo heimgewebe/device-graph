@@ -25,6 +25,9 @@ guarded_write_paths:
   - docs/blueprints/**
   - docs/plans/**
 
+forbidden_write_paths:
+  - docs/_generated/**
+
 generated_paths:
   - docs/_generated/**
 
