@@ -1,553 +1,69 @@
 ---
-id: heimnetz-2026
-title: "Blaupause: Heimnetz 2026+ (Deterministische Layer-Architektur, gehärtet & durchsetzbar)"
-doc_type: blueprint
-role: target-semantics
-status: active
-canonicality: canonical
-last_reviewed: 2026-04-19
-summary: "Architektur-Blaupause für eine deterministische, ebenen-basierte Heimnetz-Infrastruktur mit klarem Failure-Tiering und Enforcement-Regeln."
-depends_on: []
-related_docs:
+document_type: blueprint
+status: final
+precedence: target-semantics
+linked_plans:
   - ../plans/roadmap.md
   - ../plans/next-steps.md
-verifies_with: []
 ---
-# **Blaupause: Heimnetz 2026+ (Deterministische Layer-Architektur, gehärtet & durchsetzbar)**
-
----
+# **Blaupause: Heimnetz 2026+ (Deterministische Layer-Architektur)**
 
 > **Hinweis zur Repository-Grenze:**
-> Dieses Dokument im `device-graph`-Repo definiert **ausschließlich die geräteübergreifende Modellsemantik** (Zielrollen, Invarianten, Trust-Zonen).
+> Dieses Dokument im `device-graph`-Repo definiert **ausschließlich die geräteübergreifende Modellsemantik** (Zielrollen, abstrakte Invarianten, Trust-Zonen).
 > Jegliche operative Betriebslogik, hostspezifische Runbooks, konkrete Enforcement-Befehle, Detection-Scripts und Port-Regeln sind kanonisch im `heimserver`-Repo angesiedelt.
 
-## 0. Leitprinzipien (kanonisch, abstrahiert)
+---
 
-1. **Single Source of Truth (SoT):**
-   DNS/Name → **Heimberry** (erzwingbar, nicht nur intendiert)
+## 1. Abstrakte Leitprinzipien
 
-2. **Strikte Ebenentrennung:**
-   **Truth ≠ Service ≠ Interaction ≠ Access**
-
-3. **Internal-First + Zero-Exposure:**
-   Kein direkter öffentlicher Ingress. Zugriff erfolgt ausschließlich über ein authentifiziertes Overlay. (Hinweis: Das Overlay nutzt das Internet als Transportschicht und ist nicht mit physischer Isolation zu verwechseln.)
-
-4. **Determinismus vor Komfort:**
-   Jeder Request ist rekonstruierbar (DNS → Proxy → Service)
-
-5. **Eindeutige Abbildung:**
-   `1 FQDN → 1 IP → 1 Proxy → 1 Upstream`
-
-6. **Kontrollierte Fehlertoleranz:**
-   Fehler führen zu **vorhersehbaren, degradierten Zuständen**, anstatt das Gesamtsystem untrennbar ausfallen zu lassen.
-
-7. **Enforcement vor Konvention:**
-   Regeln gelten nur, wenn sie technisch erzwungen und kontinuierlich verifiziert werden.
-
-8. **Epistemische Ehrlichkeit (Determinismus vs. Realität):**
-   Determinismus ist ein Architekturziel, keine absolute Garantie. Client-Verhalten (z.B. DoH/DoT, harte OS-Resolver) kann diesen partiell unterlaufen. Das System ist darauf ausgelegt, dies zu begrenzen und sichtbar zu machen, nicht vollständig zu eliminieren.
-
-9. **Betriebsphilosophie:**
-   Dieses System optimiert primär auf Erklärbarkeit und Kontrolle, nicht auf maximal unsichtbare Resilienz. Es bevorzugt sichtbare Fehler vor stiller Mehrdeutigkeit.
+1. **Single Source of Truth (SoT):** DNS/Name-Auflösung liegt exklusiv bei einem dezidierten Truth-Knoten.
+2. **Strikte Ebenentrennung:** Truth ≠ Service ≠ Interaction ≠ Access.
+3. **Internal-First + Zero-Exposure:** Kein direkter öffentlicher Ingress. Zugriff erfolgt ausschließlich über ein authentifiziertes Overlay.
+4. **Eindeutige Abbildung:** Keine konkurrierenden Wahrheiten oder implizite Fallbacks im kanonischen Architektur-Raum.
 
 ---
 
-## 1. Geräte-Rollen (final, gehärtet)
+## 2. Zielrollen der Geräte auf Modellniveau
 
-### 1.1 Heimberry — **Truth Layer**
+Das Netzwerk wird über klare, isolierte Geräterollen modelliert:
 
-**OS/Runtime:** Debian Bookworm Lite + Docker
-
-**Pflichtdienste:**
-
-* Pi-hole (DNS authoritative + filtering)
-* Unbound (rekursiver Resolver)
-* Tailscale (Subnet Router + DNS Advertiser)
-
-**Optionale Dienste:**
-
-* DHCP (nur bei vollständiger Router-Deaktivierung)
-* node-exporter (Observability)
-
-**Explizit ausgeschlossen:**
-
-* kein Reverse Proxy
-* keine App-Container
-* keine GUI / Dev / Media
-
-**Invarianten:**
-
-* einziger primärer Resolver für `home.arpa`
-* primäre Quelle für DNS-Antworten
-* alle Clients nutzen primär Heimberry
-
-**Betriebsanforderungen (Bewusster SPOF):**
-Die Rolle als einziger DNS-Knoten macht den Heimberry zu einem strukturellen SPOF. Dies wird bewusst akzeptiert zugunsten architektonischer Klarheit. Es wird keine Pseudo-HA oder zweite DNS-Wahrheit eingeführt. Ein Ausfall bedeutet den Verlust der FQDN-Auflösung, was degradierte Zustände erzwingt (siehe Failure-Tiering). Die Resilienz beschränkt sich auf:
-* **Monitoring:** Erreichbarkeit und DNS-Antwortzeiten müssen extern (z.B. vom Heimserver) überwacht werden.
-* **Recovery:** Automatischer Docker-Restart bei Crash; dokumentierte manuelle Restart-Prozedur für das OS. Striktes "Restore-from-zero" Zeitbudget: < 15 Minuten.
-* **Backup:** Tägliche Backups der Pi-hole-Konfiguration und Tailscale-State auf ein externes Ziel.
+* **Heimberry (Truth Layer):** Hält die autoritative Wahrheit über Namen und Netzwerkgrenzen.
+* **Heimserver (Service Layer):** Führt Applikationen aus und stellt den Reverse Proxy bereit. Keine Primärauthorität für das Netz.
+* **Heim-PC (Interaction Layer):** Zustandsbehafteter Knoten für Entwicklung und Interaktion. Keine Netzwerkautorität.
+* **iPad (Access Layer):** Zustandsloser Zugriffsknoten über das Overlay-Netzwerk.
 
 ---
 
-### 1.2 Heimserver — **Service Layer**
+## 3. Zielnetzwerke und Modell-Beziehungen
 
-**Runtime:** Docker + Compose
-
-**Pflichtdienste:**
-
-* Caddy (Reverse Proxy + interne CA)
-* Applikationen
-
-**Optionale Dienste:**
-
-* Worker / Queues
-* interne Tools (nicht kanonisch)
-
-**Explizit ausgeschlossen:**
-
-* kein primäres DNS
-* kein VPN-Core
-* keine Dev-Primärumgebung
-
-**Invarianten:**
-
-* alle Services nur über Caddy erreichbar
-* keine direkten Containerports
-* stellt Monitoring-Watchdog für Heimberry bereit
+* **LAN:** Bildet die physische Unterbauschicht für stationäre Knoten (Heimberry, Heimserver, Heim-PC).
+* **Overlay:** Dient als ausschließliches Mesh-Netzwerk für Zugriffe, Routing und Zero-Trust-Isolation.
+* **Interdependenz:** Heimserver und Heim-PC vertrauen dem Heimberry als primärem Namens- und Netzwerk-Verteiler.
 
 ---
 
-### 1.3 Heim-PC — **Interaction Layer**
+## 4. Trust-Zonen und Invarianten
 
-**Rolle:** Entwicklung + GPU + Zustandsträger
-
-**Pflichtdienste:**
-
-* VS Code / Toolchain
-* Sunshine
-
-**Optionale Dienste:**
-
-* temporäre Testcontainer (nicht persistent)
-
-**Explizit ausgeschlossen:**
-
-* keine Netzwerkautorität
-* kein Proxy / primäres DNS
-
-**Invarianten:**
-
-* einziger kanonischer Dev-State
-* keine parallelen Arbeitskopien als Wahrheit
+* **Kanonischer Namensraum:** Es gibt exakt einen autoritativen, internen FQDN-Namensraum, geführt vom Truth Layer.
+* **Isolierte Ausführung:** Der Service Layer ist strikt konsolidiert. Dienste werden nur über eine zentrale Proxy-Entität zugänglich gemacht.
+* **Zentraler Zugriff:** Kein Splitbrain zwischen LAN und WAN; das Overlay bildet die einheitliche Vertrauenszone für den Access Layer.
 
 ---
 
-### 1.4 iPad — **Access Layer**
+## 5. Abgrenzung: Kanonische Wahrheit vs. Administrativer Notpfad
 
-**Rolle:** Zustandsloser Zugriff
+Auf Modellniveau wird zwischen dem intendierten Soll-Zustand und dem betrieblichen Fallback unterschieden:
 
-**Tools:**
-
-* Moonlight
-* Tailscale
-* optional SSH
-
-**Invariante:**
-
-* keine Persistenz
-* keine lokale Logik
+* **Kanonische Wahrheit:** Der primäre FQDN-Raum, der durch den Truth Layer erzwungen wird.
+* **Administrativer Notzugang:** Ein separater, isolierter Namensraum (z.B. über Overlay-Node-Namen), der ausdrücklich *nicht* Teil der kanonischen Zielarchitektur ist, sondern ein operatives Notfallwerkzeug des Service-Layers.
 
 ---
 
-## 2. Netzwerk-Topologie (präzisiert)
+## 6. Migrationsziel
 
-### 2.1 LAN
+Das übergeordnete Modell-Ziel ist die Transition von einer historisch gewachsenen, monolithischen Struktur zu einer deterministischen Schichtenarchitektur:
+1. Verlagerung der Netzwerk-Wahrheit (DNS/Truth) auf den dedizierten Heimberry.
+2. Degradierung des Heimservers zum reinen Service- und Applikations-Layer.
+3. Vollständige Etablierung des Overlay-Netzwerks als primäre Access-Schicht.
 
-* `192.168.178.0/24`
-* Heimberry: `192.168.178.2`
-* Heimserver: `192.168.178.46`
-* Heim-PC: `192.168.178.25`
-
-### 2.2 Overlay
-
-* ausschließlich **Tailscale**
-
-Heimberry übernimmt die Rolle als primärer Tailscale Subnet Router. Konkrete Implementierungsbefehle sind im `heimserver`-Repo dokumentiert.
-
-### 2.3 Routing-Invarianten
-
-* kein Portforwarding
-* kein Dual-VPN
-* kein implizites Routing
-* kein Internet-Ingress
-
----
-
-## 3. DNS-Architektur & Resilienz (erzwingbar gemacht)
-
-### 3.1 Root
-
-* `home.arpa`
-
-### 3.2 Zonen
-
-* `heimgewebe.home.arpa`
-* `weltgewebe.home.arpa`
-
-### 3.3 Harte Regeln & Resilienz-Strategie
-
-* **Primär:** Heimberry = primärer Nameserver für alle Zonen. `home.arpa` bleibt exklusiv Heimberry-geführt.
-* **Secondary/Fallback (Neu):** Tailscale MagicDNS ist **NICHT** sekundäre Wahrheit für `home.arpa`. Es ist ein **separater administrativer Notzugangspfad** außerhalb des kanonischen Heimnetz-Namensraums für kritische Knoten-IPs, falls Heimberry ausfällt. Ein degradierter Betrieb bedeutet hier nicht, dass sich die DNS-Wahrheit verlagert, sondern nur, dass ein eingeschränkter Admin-Zugriff möglich bleibt.
-* **Router DHCP Ziel:** Kein konkurrierender zweiter Resolver im DHCP. Keine gleichrangigen DNS-Server verteilen. Notfallpfade laufen bewusst außerhalb von DHCP.
-* Tailscale DNS → Heimberry.
-
-### 3.4 Enforcement (Konkretisiert)
-
-Clients müssen explizit konfiguriert werden.
-
-**Klassifikation der Mechanismen:**
-* **HART ERZWINGBAR:** Linux/Server (`resolv.conf` hardcoded auf `nameserver 192.168.178.2`), Tailscale DNS-Settings (Override Local DNS erzwingt Heimberry für Tailnet-Clients).
-* **WEITGEHEND ERZWINGBAR:** Router DHCP (DHCP-Option 6 verteilt ausschließlich `192.168.178.2`, wird aber nur von kooperativen Clients übernommen).
-* **NUR DETEKTIERBAR / BEGRENZBAR:** Client-DoH/DoT-Verhalten.
-
-
-**Client-Realität und operative Grenzen:**
-Determinismus ist im Netzwerk nur partiell erzwingbar. Realistisch problematische Klassen sind iOS/iPadOS (die oft eigene DNS-Wege bevorzugen), Browser mit integriertem DoH, sowie Smart Devices/IoT mit hartcodierten Resolvern. Maßnahmen: Bekannte DoH/DoT-Bootstrap-Server werden blockiert. Unkooperative Clients, die lokales DNS vollständig verweigern, werden isoliert (z.B. Gast-VLAN). Abweichungen sollen sichtbar gemacht, aber nicht um jeden Preis technisch (z.B. via SSL-Interception) verhindert werden.
-
----
-
-## 4. DNS-Stack
-
-```text
-Client → Pi-hole → Unbound → Root
-```
-
-### Invarianten
-
-* kein externer Upstream im Pi-hole (immer Unbound)
-* keine zweite aktive *vollwertige* Resolverinstanz (MagicDNS ist nur Notnagel)
-* keine lokalen Overrides in `/etc/hosts` für Produktionsdienste
-
----
-
-## 5. Reverse Proxy & TLS (gehärtet)
-
-### Ort
-
-* ausschließlich Heimserver
-
-### Regeln
-
-* jede App → FQDN
-* interne CA verpflichtend
-* kein Direktzugriff auf Container
-
-### Beispiel
-
-```caddy
-leitstand.heimgewebe.home.arpa {
-    reverse_proxy http://leitstand:3000
-}
-```
-
-### Enforcement (Abstrakt)
-App-Container sind strikt an lokale oder isolierte Netze zu binden. Host-Firewalls müssen den Ingress auf die vorgesehenen Proxy/DNS/SSH-Ports begrenzen und zwischen LAN und Tailnet differenzieren. Die exakte Port-Disziplin und Firewall-Regularien sind im `heimserver`-Repo verankert.
-
----
-
-## 6. Access Layer (VPN, final)
-
-### Entscheidung
-
-* ausschließlich **Tailscale**
-
-### Funktionen
-
-* Device Mesh
-* Subnet Routing
-* DNS Integration
-
-### DNS-Konfig
-
-* Nameserver → Heimberry
-* MagicDNS aktiv, aber streng limitiert als separater administrativer Notzugang (nicht als kanonischer Fallback)
-
-### Invarianten
-
-* kein zweites VPN
-* keine alternative Routinglogik
-
----
-
-## 7. Remote Development (präzisiert)
-
-### Primär
-
-```text
-iPad → Tailscale → Heim-PC → Moonlight → Dev
-```
-
-### Sekundär
-
-```text
-iPad → Heimserver → SSH/code-server
-```
-
-### Regeln
-
-* Dev-State nur auf Heim-PC
-* keine Cloud als Primärsystem
-* keine Sync-basierten Doppelzustände
-
----
-
-## 8. Port-Disziplin
-
-### Heimberry
-
-* 53 (DNS) - LAN & Tailnet
-* Tailscale intern
-* Pi-hole Webinterface - Tailnet-only
-
-### Heimserver
-
-* 80/443 (Caddy) - LAN & Tailnet
-* 22 (SSH) - LAN & Tailnet
-
-### Heim-PC
-
-* Sunshine Ports - Tailnet-only
-* 22 (SSH) - Tailnet-only
-
-### Global
-
-* keine offenen Internetports
-* keine direkten Serviceports
-
----
-
-## 9. IPv6-Policy (explizit gehärtet)
-
-### Zustand
-
-* IPv6 ist derzeit bewusst ausgeklammert (deaktiviert), um die Komplexität im Zielzustand zu reduzieren. Dies ist eine operative Vereinfachung, keine metaphysische Wahrheit oder dauerhafte architektonische Ablehnung.
-
-### Enforcement
-
-* Router IPv6 aus
-* OS-Level (`sysctl net.ipv6.conf.all.disable_ipv6=1`) deaktiviert
-
-### Aktivierung nur wenn:
-
-* DNS vollständig IPv6-fähig
-* Pi-hole + Unbound integriert
-* kein paralleler Resolver entsteht
-
----
-
-## 10. Sicherheitsmodell
-
-* Zero Trust via Overlay
-* interne TLS-CA verpflichtend
-* keine extern erreichbaren Dienste
-* keine impliziten Trust-Zonen
-
----
-
-## 11. Observability (erweitert)
-
-### Minimal
-
-* Pi-hole Query Logs
-* Caddy Access Logs
-
-### Erweiterung
-
-* **Heimberry Health-Check:** Skript auf dem Heimserver prüft minütlich DNS-Auflösung und alarmiert bei Ausfall.
-* zentraler Log-Aggregator (optional)
-* Query-Tracing möglich
-
-### Ziel
-
-```text
-jede Anfrage nachvollziehbar:
-Client → DNS → Proxy → Service
-```
-
----
-
-## 12. Drift-Prevention (erzwingbar)
-
-### Verbote und menschliche Risiken
-
-* `/etc/hosts` Overrides bleiben im Normalbetrieb strikt verboten. Temporäre Incident-Overrides sind nur auf definierten Admin-Clients zulässig, sind dokumentations- und rollbackpflichtig, und gelten ausdrücklich nicht als kanonische Konfiguration.
-* lokale DNS-Resolver
-* direkte Ports
-* Shadow-Proxies
-
-**Der menschliche Faktor:** Eine hohe Regelstrenge provoziert in der Praxis Shadow-Configs, wenn offizielle Wege zu aufwendig sind. Verbote allein verhindern Drift nicht. Sichtbarkeit (Logs, Monitoring) und einfache Recovery-Pfade sind ebenso wichtig wie das Regelwerk selbst.
-
-### Regel für neue Services
-
-```text
-DNS → Caddy → Container
-```
-
----
-
-## 13. Failure-Tiering (Fehlertoleranz-Modell)
-
-Das System muss vorhersehbar reagieren, wenn Komponenten ausfallen.
-
-### Zustand 1: Normalbetrieb
-Alle Systeme online.
-* **Routing:** FQDNs werden via Heimberry aufgelöst.
-* **Services:** Voller Zugriff via Caddy mit TLS.
-
-### Zustand 2: Degradierter Admin-Zugriff (Heimberry offline)
-Heimberry (DNS) fällt aus, aber Heimserver & PC laufen noch.
-* **Was funktioniert noch:** Physische Verbindungen, IP-Routing, Tailscale-Verbindungen. Services laufen im Hintergrund weiter.
-* **Was ist kaputt:** Kanonische `.home.arpa` DNS-Auflösung schlägt global fehl. Ad-Filtering ist inaktiv.
-* **Gültige Namenspfade:** Nur MagicDNS Node-Namen (`heimserver`, `heim-pc`) als administrativer Notzugang. Kanonische FQDNs sind offline.
-* **Zulässige Zugriffswege (Degraded Access Path):**
-  * SSH-Zugriff über IP (`192.168.178.46` oder Tailscale-IP).
-  * Administrative Zugriffe über MagicDNS Node-Namen.
-* **Temporäre Ausnahmen:** Lokale `/etc/hosts` Notfall-Einträge auf definierten Admin-Clients für kritische Caddy-Dienste (dokumentations- und rollbackpflichtig).
-* **Aktion:** Prio 1 Restart Heimberry.
-
-### Zustand 2b: Degradierter App-Betrieb
-DNS ist online, aber Reverse Proxy (Caddy) ist in Teilen gestört oder intern blockiert.
-* **Was funktioniert noch:** DNS-Auflösung.
-* **Was ist kaputt:** App-Erreichbarkeit über FQDNs.
-* **Zulässige Zugriffswege:** Lokales Port-Forwarding (SSH-Tunnel) an `127.0.0.1` des Heimservers zur Diagnose. Direkte IP-Zugriffe bleiben verboten.
-
-### Zustand 3: Total Failure (Heimserver offline)
-Heimserver (Proxy/Services) fällt aus.
-* **Was funktioniert noch:** DNS funktioniert weiterhin (wenn Heimberry online), liefert aber "Connection Refused" auf FQDNs.
-* **Was ist kaputt:** Alle Applikationen nicht erreichbar. Reverse Proxy offline.
-* **Zulässige Zugriffswege:** Direkter physischer oder SSH-Zugriff auf Heimserver (via IP oder MagicDNS) zur Fehlerbehebung.
-* **Aktion:** Wiederherstellung des Service-Layers.
-
-### Designziel
-Fehler sind **lokalisierbar, eindeutig und erlauben administrativen Notfallzugriff.**
-
----
-
-## 14. Gehärteter Migrationsplan
-
-### Phase 1 — Truth (Risiko-Minimiert)
-
-* Heimberry deployen & konfigurieren
-* **Parallelbetrieb:** Router DNS bleibt vorerst unverändert. Einzelne Clients (z.B. Admin-PC) manuell auf Heimberry umstellen.
-* **Validierung:** DNS-Auflösung über Heimberry ist stabil.
-* Router DNS auf Heimberry umstellen (mit 24h Überwachungsphase).
-* **Rollback-Plan:** Bei Störungen im LAN Router-DHCP sofort zurück auf Provider-DNS stellen.
-
-### Phase 2 — Access
-
-* Tailscale auf allen Geräten
-* Subnet Routing aktivieren
-* Tailscale DNS auf Heimberry lenken
-
-**Validierung:** iPad erreicht interne FQDNs ohne lokales WLAN.
-* **Rollback-Plan:** Deaktivierung von "Override Local DNS" in der Tailscale Admin Console.
-
-### Phase 3 — Service
-
-* Caddy konsolidieren
-* Container-Ports von `0.0.0.0` auf `127.0.0.1` oder internes Docker-Netz umstellen.
-
-**Validierung:** Isolierte Apps sind ausschließlich über FQDN und HTTPS (Caddy) erreichbar.
-* **Rollback-Plan:** Revert der `docker-compose.yml` Port-Bindings auf `0.0.0.0`, falls Caddy-Routing unvorhergesehene Fehler wirft.
-
-### Phase 4 — Interaction
-
-* Sunshine stabilisieren
-
-### Phase 5 — Cleanup
-
-* WireGuard entfernen
-* alte DNS (alte Pi-holes etc.) löschen
-
----
-
-## 15. Invarianten (unverhandelbar)
-
-1. DNS = Heimberry (primär)
-2. Overlay = Tailscale
-3. Proxy = Heimserver
-4. Dev = Heim-PC
-5. kein Splitbrain (keine zwei gleichwertigen Wahrheiten)
-6. keine Direkt-Exposures
-
----
-
-## 16. Anti-Patterns
-
-* Dual DNS (zwei unterschiedliche DNS Server im DHCP, führt zu zufälligen Ergebnissen)
-* Dual VPN
-* mehrere Proxies
-* exposed Container
-* mehrere Dev-Wahrheiten
-* halb aktiviertes IPv6
-
----
-
-## 17. Essenz
-
-**Struktur:**
-
-* Heimberry → Wahrheit
-* Heimserver → Dienste
-* Heim-PC → Interaktion
-* iPad → Zugriff
-
-**Logik:**
-
-→ Wahrheit zentral
-→ Zugriff flexibel
-→ Ausführung isoliert
-→ Regeln erzwingbar und bei Ausfall vorhersehbar
-
----
-
-## 18. Bewusste Tradeoffs
-
-Dieses System ist eine Entscheidung für Erklärbarkeit.
-**Was gewonnen wird:**
-* Klarheit und explizite Wahrheiten
-* Einfache Debugbarkeit (linearer Request-Pfad)
-* Kohärenz (Single Source of Truth)
-
-**Was bewusst geopfert wird:**
-* Komfort (kein „it just works“ bei Ausfällen)
-* Implizite Resilienz (keine automatischen Fallbacks auf Provider-DNS)
-* Toleranz gegenüber wilden Clients
-
----
-
-## 19. Unsicherheits- & Interpolationsanalyse
-
-**Unsicherheitsgrad:** 0.15 (gesenkt durch Failure-Tiering)
-Ursachen:
-* Reale Last des Heimberrys unter Volllast ist aktuell nur eine Annahme.
-* Das genaue Client-Verhalten bei MagicDNS-Fallback in echten Störungsszenarien muss erst in der Validierungsphase getestet werden.
-
-**Interpolationsgrad:** 0.20
-Annahmen:
-* Die vollständige DNS-Disziplin ist operativ durchhaltbar, ohne dass der administrative Schmerz zu Shadow-IT führt.
-* MagicDNS reicht als administrativer Notfall-Zugriff.
-* Die Heimberry-Hardware ist hinreichend stabil.
-Testbar sind die harten Enforcement-Regeln (Firewall, DNS-Verteilung); nicht vorab testbar ist das menschliche Verhalten im langfristigen Betrieb.
-
----
-
-## 20. Abgrenzung: Kanonische Wahrheit vs. Administrativer Notpfad
-
-Um Splitbrain-Szenarien und Architekturdrift zu vermeiden, wird hiermit explizit getrennt:
-
-* **Kanonischer DNS-Raum (`home.arpa`):** Die exklusive, autoritative Quelle für alle Dienste und Endpunkte im Normalbetrieb. Wird ausschließlich von Heimberry bereitgestellt.
-* **Notzugang über Tailscale/MagicDNS:** Ein separater, isolierter Namensraum (`Node-Namen`), der **nicht** Teil der kanonischen Architektur ist. Er dient ausschließlich dem administrativen Notfallzugriff, wenn der kanonische Raum gestört ist.
-* **Nicht-kanonische Incident-Hilfen:** Temporäre Overrides (z.B. `/etc/hosts` auf Admin-Maschinen) sind explizit keine Architekturmerkmale, sondern operative Werkzeuge für den Ausfallmodus. Sie unterliegen einer strikten Rollback-Pflicht nach Behebung des Incidents.
-
----
+*(Hinweis: Alle operativen Migrationspläne, Rollback-Prozeduren und Test-Validierungen liegen im `heimserver`-Repo).*
