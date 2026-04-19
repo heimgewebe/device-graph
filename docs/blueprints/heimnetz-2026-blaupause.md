@@ -38,14 +38,14 @@ Das Netzwerk wird über klare, isolierte Geräterollen modelliert:
 
 * **LAN:** Bildet die physische Unterbauschicht für stationäre Knoten (Heimberry, Heimserver, Heim-PC).
 * **Overlay:** Dient als primäre Zugriffsschicht für Routing und Zero-Trust-Isolation.
-* **Interdependenz:** Heimserver und Heim-PC vertrauen dem Heimberry als primärem Namens- und Netzwerk-Verteiler.
+* **Interdependenz:** Service- und Interaction-Layer vertrauen dem Truth Layer als primärem Namens- und Netzwerk-Verteiler.
 
 ---
 
 ## 4. Trust-Zonen und Invarianten
 
 * **Kanonischer Namensraum:** Es gibt exakt einen autoritativen, internen FQDN-Namensraum, geführt vom Truth Layer.
-* **Isolierte Ausführung:** Der Service Layer ist strikt konsolidiert. Dienste werden nur über eine zentrale Proxy-Entität zugänglich gemacht.
+* **Isolierte Ausführung:** Der Service Layer ist strikt konsolidiert. Dienste werden nur über zentrale Zugriffskomponenten zugänglich gemacht.
 * **Zentraler Zugriff:** Kein Splitbrain zwischen LAN und WAN; das Overlay bildet die einheitliche Vertrauenszone für den Access Layer.
 
 ---
@@ -62,8 +62,8 @@ Auf Modellniveau wird zwischen dem intendierten Soll-Zustand und dem betrieblich
 ## 6. Migrationsziel
 
 Das übergeordnete Modell-Ziel ist die Transition von einer historisch gewachsenen, monolithischen Struktur zu einer deterministischen Schichtenarchitektur:
-1. Verlagerung der Netzwerk-Wahrheit (DNS/Truth) auf den dedizierten Heimberry.
-2. Degradierung des Heimservers zum reinen Service- und Applikations-Layer.
+1. Verlagerung der Netzwerk-Wahrheit auf den dedizierten Truth Layer.
+2. Reduktion bestehender Knoten auf reine Service-Rollen ohne Netzwerkautorität.
 3. Vollständige Etablierung des Overlay-Netzwerks als primäre Access-Schicht.
 
 *(Hinweis: Alle operativen Migrationspläne, Rollback-Prozeduren und Test-Validierungen liegen im `heimserver`-Repo).*
