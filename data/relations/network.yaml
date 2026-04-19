@@ -5,3 +5,12 @@ relations:
   - source: heimserver
     target: vpn
     type: connected_to
+  - source: heim-pc
+    target: lan
+    type: connected_to
+  - source: heimberry
+    target: lan
+    type: connected_to
+  - source: ipad-10
+    target: lan
+    type: connected_to
