@@ -2,7 +2,7 @@ assignments:
   - role: dns
     device: heimserver
     confidence: confirmed
-  - role: vpn
+  - role: vpn-server
     device: heimserver
     confidence: confirmed
   - role: client
