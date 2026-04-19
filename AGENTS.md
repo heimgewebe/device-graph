@@ -1,182 +1,132 @@
-# Agent Guidelines
+# Agentenanweisung für `device-graph`
 
-This repository models devices, networks, roles, relationships, trust zones, and migration states.
+Du arbeitest in einem **Modell-Repo**, nicht in einem Infrastruktur- oder Konfigurations-Repo.
 
-It is a **model-repo**, not an infrastructure repo.
+Deine Aufgabe ist es, das Repo als **konsistentes, explizites und maschinenlesbares Modell** von Geräten, Netzwerken, Rollen, Beziehungen, Vertrauenszonen und Migrationen zu pflegen.
 
-Your responsibility is to **maintain correctness, consistency, and explicitness of the model**.
-
----
-
-## 1. Read Order (Mandatory)
-
-Before making any changes, read:
+## Lies zuerst
 
 1. `README.md`
-2. `repo.meta.yaml`
-3. `docs/index.md`
-4. `docs/reference/` (when populated, use as semantic reference)
-5. relevant files in `data/` and `schemas/`
+2. `AGENTS.md`
+3. `repo.meta.yaml`
+4. `docs/index.md`
+5. relevante Dateien in `docs/reference/`, `data/` und `schemas/`
 
----
+## Grundregeln
 
-## 2. Core Principles
+* Triff keine stillen Annahmen.
+* Füge keine implizite Semantik ein.
+* Markiere Unsicherheit explizit.
+* Behandle das Repo als **Karte von Realität und Zielzuständen**, nicht als Laufzeitkonfiguration.
 
-### 2.1 Explicit over implicit
-All relevant information must be explicitly modeled.
+## Modellgrenzen
 
-- No hidden assumptions
-- No inferred meaning without marking it
-- No silent defaults
+Dieses Repo ist zuständig für:
 
----
+* Geräte
+* Netzwerke
+* Rollen
+* Rollen-Zuordnungen
+* allgemeine Graph-Beziehungen
+* Vertrauenszonen
+* Migrationen
 
-### 2.2 Separation of Concerns
+Dieses Repo ist **nicht** zuständig für:
 
-| Concept | Location |
-|--------|--------|
-| Devices | `data/devices/` |
-| Networks | `data/networks/` |
-| Roles | `data/roles/` |
-| Role assignments | `data/assignments/` |
-| Relationships | `data/relations/` |
+* host-spezifische Primärkonfiguration
+* Secrets
+* produktive Runbooks
+* Spiegel anderer Infra-Repos
 
-Strict rules:
+## Strukturdisziplin
 
-- Role ↔ Device mapping ONLY in `data/assignments/`
-- NEVER represent roles via relations (`HAS_ROLE` is forbidden)
-- `data/relations/` is only for graph edges
+Nutze die Verzeichnisse strikt nach ihrer Funktion:
 
----
+* `data/devices/` → Geräte
+* `data/networks/` → Netzwerke
+* `data/roles/` → Rollen
+* `data/assignments/` → Rolle-zu-Gerät-Zuordnungen
+* `data/relations/` → allgemeine Graph-Kanten
 
-### 2.3 Epistemic Discipline
+Wichtig:
 
-All future or uncertain states must be explicitly marked.
+* Rolle-zu-Gerät-Zuordnungen nur in `data/assignments/`
+* keine `HAS_ROLE`-ähnlichen Relationen in `data/relations/`
 
-Use:
+## Epistemische Disziplin
 
-- `status` → real-world existence
-- `confidence` → assignment certainty
-- `visibility` → observability
-- optional future: `source_kind`, `evidence_level`
+Zukünftige, unsichere oder nur teilweise beobachtete Zustände müssen explizit markiert werden.
 
-Never present speculative architecture as fact.
+Verwende insbesondere:
 
----
+* `status`
+* `confidence`
+* `visibility`
 
-### 2.4 Heterogeneity is mandatory
+Spekulative Architektur darf nie als Fakt dargestellt werden.
 
-Devices must reflect real-world diversity.
+## Blueprint vs Plan
 
-At minimum:
+* `docs/blueprints/` enthält **Sollbilder, Architekturziele, Modelllogik**
+* `docs/plans/` enthält **operative Schritte, Reihenfolgen, Umsetzungspfad**
 
-- `category`
-- `visibility`
+Wenn Blaupause und Plan auseinanderlaufen:
 
-Recommended:
+* Blaupause regelt die Zielsemantik
+* Plan regelt die Ausführungsreihenfolge
+* jede Abweichung muss explizit gemacht werden
 
-- `management_model`
-- `trust_zone`
+Alle Blaupausen und Pläne sollen wechselseitig aufeinander verweisen, damit ihre Beziehung für Menschen und Agents nachvollziehbar bleibt.
 
-Do not assume:
-- IP connectivity
-- direct access
-- uniform device capabilities
+If blueprints and plans diverge:
+- blueprints govern target semantics
+- plans govern execution order
+- divergence must be made explicit
 
----
+## Referenzdisziplin
 
-### 2.5 Graph Integrity
+* `docs/reference/` definiert die semantischen Leitplanken
+* Änderungen an Relationen und Zustandsfeldern müssen mit den aktiven Schemas und den Referenzdokumenten vereinbar sein
+* Wenn Referenzdokumente noch unvollständig sind, darfst du keine stillen Bedeutungen ergänzen
 
-All graph edges must be valid and meaningful.
+## Validierung
 
-Rules:
-
-- All `source` and `target` IDs must exist
-- Relations must follow the active schema and the documented semantics in `docs/reference/relation-types.md` where defined
-- Avoid redundant or duplicate edges
-- Direction matters
-
----
-
-## 3. Validation (Non-Negotiable)
-
-Every change to `data/` or `schemas/` requires:
+Bei jeder Änderung an `data/` oder `schemas/` ist verpflichtend:
 
 ```bash
 make validate
 ```
 
-Validation includes:
+Ohne erfolgreiche Validierung gilt eine Änderung nicht als abgeschlossen.
 
-* schema compliance
-* relation integrity
-* cross-entity consistency
+## Generated Content
 
-No validation → no valid change.
+* `docs/_generated/` niemals manuell editieren
+* Wenn dort etwas falsch ist: Quelle korrigieren, nicht Ausgabe
 
----
+## Was gute Änderungen auszeichnet
 
-## 4. Generated Content
+Eine gute Änderung:
 
-* `docs/_generated/` is **read-only**
-* Never manually edit generated files
-* If inconsistent → fix source, not output
+* erhöht Klarheit
+* reduziert Ambiguität
+* hält Unsicherheit sichtbar
+* wahrt die Trennung der Konzepte
+* bleibt schema- und modellkonform
 
----
+Eine schlechte Änderung:
 
-## 5. Blueprints vs Plans
+* versteckt Annahmen
+* vermischt Rolle, Gerät und Relation
+* erzeugt doppelte Wahrheit
+* verletzt Validierung
+* löst operative Probleme durch semantische Unschärfe
 
-| Type       | Location           | Purpose                 |
-| ---------- | ------------------ | ----------------------- |
-| Blueprints | `docs/blueprints/` | conceptual architecture |
-| Plans      | `docs/plans/`      | execution and steps     |
+## Wenn du unsicher bist
 
-Rules:
+Bevorzuge:
 
-* Blueprints may be incomplete, speculative, or exploratory
-* Plans must be actionable and grounded
-* Do not mix both
-
----
-
-## 6. What Good Contributions Look Like
-
-A good change:
-
-* improves clarity of the model
-* reduces ambiguity
-* respects schema constraints
-* keeps epistemic states explicit
-* maintains graph consistency
-
-A bad change:
-
-* introduces implicit assumptions
-* mixes concepts (roles vs relations)
-* hides uncertainty
-* breaks validation
-* duplicates information
-
----
-
-## 7. If Unsure
-
-Prefer:
-
-* explicit fields over clever shortcuts
-* simple structure over implicit logic
-* marking uncertainty over guessing
-
-The model should be **inspectable, explainable, and machine-readable**.
-
----
-
-## 8. Mental Model
-
-This repository is not a configuration.
-
-It is a **map of reality and intention**.
-
-Reality is messy.
-Your job is not to simplify it —
-your job is to **represent it faithfully**.
+* explizite Felder statt Abkürzungen
+* einfache Struktur statt impliziter Logik
+* markierte Unsicherheit statt Spekulation
+* Verweise statt stiller Parallelwelten
