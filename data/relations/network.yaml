@@ -1,0 +1,7 @@
+relations:
+  - source: heimserver
+    target: lan
+    type: connected_to
+  - source: heimserver
+    target: vpn
+    type: connected_to

@@ -1,0 +1,10 @@
+assignments:
+  - role: dns
+    device: heimserver
+    confidence: confirmed
+  - role: vpn
+    device: heimserver
+    confidence: confirmed
+  - role: client
+    device: ipad-10
+    confidence: confirmed

@@ -1,0 +1,4 @@
+id: vpn
+name: VPN
+kind: virtual
+cidr_v4: 10.7.0.0/24

@@ -9,7 +9,7 @@ cpu: Intel i7-13700T
 ram_gb: 32
 storage: 512GB NVMe
 
-category: compute
+category: infrastructure
 visibility: direct
 
 management_model: docker-host
