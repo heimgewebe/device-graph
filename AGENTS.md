@@ -13,9 +13,10 @@ Your responsibility is to **maintain correctness, consistency, and explicitness 
 Before making any changes, read:
 
 1. `README.md`
-2. `docs/index.md`
-3. `docs/reference/`
-4. relevant files in `data/` and `schemas/`
+2. `repo.meta.yaml`
+3. `docs/index.md`
+4. `docs/reference/` (when populated, use as semantic reference)
+5. relevant files in `data/` and `schemas/`
 
 ---
 
@@ -91,7 +92,7 @@ All graph edges must be valid and meaningful.
 Rules:
 
 - All `source` and `target` IDs must exist
-- Relations must follow `docs/reference/relation-types.md`
+- Relations must follow the active schema and the documented semantics in `docs/reference/relation-types.md` where defined
 - Avoid redundant or duplicate edges
 - Direction matters
 

@@ -44,6 +44,7 @@ required_checks:
   - make validate
 
 preferred_workflow:
-  - "Read README.md, AGENTS.md, docs/index.md, and relevant docs/reference/ files first."
+  - "Read README.md, AGENTS.md, repo.meta.yaml, docs/index.md, and relevant docs/reference/ files first."
+  - "Read repo.meta.yaml after README.md and before interpreting model changes."
   - "For changes to data/ or schemas/, run make validate before proposing completion."
   - "Fix sources, not generated outputs."
