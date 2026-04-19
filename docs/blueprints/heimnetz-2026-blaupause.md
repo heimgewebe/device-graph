@@ -26,7 +26,7 @@ verifies_with: []
    **Truth ≠ Service ≠ Interaction ≠ Access**
 
 3. **Internal-First + Zero-Exposure:**
-   Kein Internet-Ingress. Zugriff ausschließlich über Overlay.
+   Kein direkter öffentlicher Ingress. Zugriff erfolgt ausschließlich über ein authentifiziertes Overlay. (Hinweis: Das Overlay nutzt das Internet als Transportschicht und ist nicht mit physischer Isolation zu verwechseln.)
 
 4. **Determinismus vor Komfort:**
    Jeder Request ist rekonstruierbar (DNS → Proxy → Service)
@@ -42,6 +42,9 @@ verifies_with: []
 
 8. **Epistemische Ehrlichkeit (Determinismus vs. Realität):**
    Determinismus ist ein Architekturziel, keine absolute Garantie. Client-Verhalten (z.B. DoH/DoT, harte OS-Resolver) kann diesen partiell unterlaufen. Das System ist darauf ausgelegt, dies zu begrenzen und sichtbar zu machen, nicht vollständig zu eliminieren.
+
+9. **Betriebsphilosophie:**
+   Dieses System optimiert primär auf Erklärbarkeit und Kontrolle, nicht auf maximal unsichtbare Resilienz. Es bevorzugt sichtbare Fehler vor stiller Mehrdeutigkeit.
 
 ---
 
@@ -74,7 +77,8 @@ verifies_with: []
 * primäre Quelle für DNS-Antworten
 * alle Clients nutzen primär Heimberry
 
-**Betriebsanforderungen (SPOF-Mitigation):**
+**Betriebsanforderungen (Bewusster SPOF):**
+Die Rolle als einziger DNS-Knoten macht den Heimberry zu einem strukturellen SPOF. Dies wird bewusst akzeptiert zugunsten architektonischer Klarheit. Es wird keine Pseudo-HA oder zweite DNS-Wahrheit eingeführt. Ein Ausfall bedeutet den Verlust der FQDN-Auflösung, was degradierte Zustände erzwingt (siehe Failure-Tiering). Die Resilienz beschränkt sich auf:
 * **Monitoring:** Erreichbarkeit und DNS-Antwortzeiten müssen extern (z.B. vom Heimserver) überwacht werden.
 * **Recovery:** Automatischer Docker-Restart bei Crash; dokumentierte manuelle Restart-Prozedur für das OS. Striktes "Restore-from-zero" Zeitbudget: < 15 Minuten.
 * **Backup:** Tägliche Backups der Pi-hole-Konfiguration und Tailscale-State auf ein externes Ziel.
@@ -203,10 +207,10 @@ tailscale up \
 
 Clients müssen explizit konfiguriert werden.
 
-**Mechanismen:**
-* **Linux/Server (`resolv.conf`):** Hardcoded auf `nameserver 192.168.178.2`.
-* **Tailscale Admin Console:** Global Nameserver auf `192.168.178.2` gesetzt, Override Local DNS aktiviert.
-* **Router DHCP:** DHCP-Option 6 (DNS) verteilt ausschließlich `192.168.178.2`.
+**Klassifikation der Mechanismen:**
+* **HART ERZWINGBAR:** Linux/Server (`resolv.conf` hardcoded auf `nameserver 192.168.178.2`), Tailscale DNS-Settings (Override Local DNS erzwingt Heimberry für Tailnet-Clients).
+* **WEITGEHEND ERZWINGBAR:** Router DHCP (DHCP-Option 6 verteilt ausschließlich `192.168.178.2`, wird aber nur von kooperativen Clients übernommen).
+* **NUR DETEKTIERBAR / BEGRENZBAR:** Client-DoH/DoT-Verhalten.
 
 **Überprüfbare Bedingung (CI/Monitoring):**
 ```bash
@@ -214,8 +218,8 @@ Clients müssen explizit konfiguriert werden.
 dig @192.168.178.2 leitstand.heimgewebe.home.arpa +short
 ```
 
-**Umgang mit unkooperativen Clients (DoH/DoT):**
-Um zu verhindern, dass Clients den Heimberry umgehen, werden bekannte DoH/DoT-Bootstrap-Server auf Router-Ebene (oder im Pi-hole, sofern der Client den Router-DNS anfragt) blockiert. Clients, die hart codierte externe Resolver nutzen und lokales DNS verweigern, werden im LAN in ein Gast-VLAN degradiert (sofern netzwerktechnisch umsetzbar).
+**Client-Realität und operative Grenzen:**
+Determinismus ist im Netzwerk nur partiell erzwingbar. Realistisch problematische Klassen sind iOS/iPadOS (die oft eigene DNS-Wege bevorzugen), Browser mit integriertem DoH, sowie Smart Devices/IoT mit hartcodierten Resolvern. Maßnahmen: Bekannte DoH/DoT-Bootstrap-Server werden blockiert. Unkooperative Clients, die lokales DNS vollständig verweigern, werden isoliert (z.B. Gast-VLAN). Abweichungen sollen sichtbar gemacht, aber nicht um jeden Preis technisch (z.B. via SSL-Interception) verhindert werden.
 
 ---
 
@@ -338,7 +342,7 @@ iPad → Heimserver → SSH/code-server
 
 ### Zustand
 
-* deaktiviert systemweit
+* IPv6 ist derzeit bewusst ausgeklammert (deaktiviert), um die Komplexität im Zielzustand zu reduzieren. Dies ist eine operative Vereinfachung, keine metaphysische Wahrheit oder dauerhafte architektonische Ablehnung.
 
 ### Enforcement
 
@@ -386,12 +390,14 @@ Client → DNS → Proxy → Service
 
 ## 12. Drift-Prevention (erzwingbar)
 
-### Verbote
+### Verbote und menschliche Risiken
 
 * `/etc/hosts` Overrides bleiben im Normalbetrieb strikt verboten. Temporäre Incident-Overrides sind nur auf definierten Admin-Clients zulässig, sind dokumentations- und rollbackpflichtig, und gelten ausdrücklich nicht als kanonische Konfiguration.
 * lokale DNS-Resolver
 * direkte Ports
 * Shadow-Proxies
+
+**Der menschliche Faktor:** Eine hohe Regelstrenge provoziert in der Praxis Shadow-Configs, wenn offizielle Wege zu aufwendig sind. Verbote allein verhindern Drift nicht. Sichtbarkeit (Logs, Monitoring) und einfache Recovery-Pfade sind ebenso wichtig wie das Regelwerk selbst.
 
 ### Regel für neue Services
 
@@ -517,24 +523,38 @@ Fehler sind **lokalisierbar, eindeutig und erlauben administrativen Notfallzugri
 
 ---
 
-## 18. Unsicherheits- & Interpolationsanalyse
+## 18. Bewusste Tradeoffs
 
-**Unsicherheitsgrad:** 0.15 (gesenkt durch Failure-Tiering)
-Ursachen:
+Dieses System ist eine Entscheidung für Erklärbarkeit.
+**Was gewonnen wird:**
+* Klarheit und explizite Wahrheiten
+* Einfache Debugbarkeit (linearer Request-Pfad)
+* Kohärenz (Single Source of Truth)
 
-* reale Last Heimberry unbekannt
-* Client-Verhalten bei MagicDNS Fallback im Detail zu testen
-
-**Interpolationsgrad:** 0.20
-Annahmen:
-
-* vollständige DNS-Disziplin ist operativ durchhaltbar
-* MagicDNS reicht als administrativer Notfall-Zugriff
-* Heimberry-Hardware ist hinreichend stabil
+**Was bewusst geopfert wird:**
+* Komfort (kein „it just works“ bei Ausfällen)
+* Implizite Resilienz (keine automatischen Fallbacks auf Provider-DNS)
+* Toleranz gegenüber wilden Clients
 
 ---
 
-## 19. Abgrenzung: Kanonische Wahrheit vs. Administrativer Notpfad
+## 19. Unsicherheits- & Interpolationsanalyse
+
+**Unsicherheitsgrad:** 0.15 (gesenkt durch Failure-Tiering)
+Ursachen:
+* Reale Last des Heimberrys unter Volllast ist aktuell nur eine Annahme.
+* Das genaue Client-Verhalten bei MagicDNS-Fallback in echten Störungsszenarien muss erst in der Validierungsphase getestet werden.
+
+**Interpolationsgrad:** 0.20
+Annahmen:
+* Die vollständige DNS-Disziplin ist operativ durchhaltbar, ohne dass der administrative Schmerz zu Shadow-IT führt.
+* MagicDNS reicht als administrativer Notfall-Zugriff.
+* Die Heimberry-Hardware ist hinreichend stabil.
+Testbar sind die harten Enforcement-Regeln (Firewall, DNS-Verteilung); nicht vorab testbar ist das menschliche Verhalten im langfristigen Betrieb.
+
+---
+
+## 20. Abgrenzung: Kanonische Wahrheit vs. Administrativer Notpfad
 
 Um Splitbrain-Szenarien und Architekturdrift zu vermeiden, wird hiermit explizit getrennt:
 
