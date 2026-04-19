@@ -14,6 +14,8 @@
 - [Migration Heimberry Blaupause](blueprints/migration-heimberry-blaupause.md)
 - [Trust Zones Blaupause](blueprints/trust-zones-blaupause.md)
 
+- [Heimnetz 2026+ Blaupause](blueprints/heimnetz-2026-blaupause.md)
+
 ## Pläne
 - [Plans](plans/index.md)
 - [Roadmap](plans/roadmap.md)
