@@ -73,7 +73,7 @@ verifies_with: []
 
 **Betriebsanforderungen (SPOF-Mitigation):**
 * **Monitoring:** Erreichbarkeit und DNS-Antwortzeiten müssen extern (z.B. vom Heimserver) überwacht werden.
-* **Recovery:** Automatischer Docker-Restart bei Crash; dokumentierte manuelle Restart-Prozedur für das OS.
+* **Recovery:** Automatischer Docker-Restart bei Crash; dokumentierte manuelle Restart-Prozedur für das OS. Striktes "Restore-from-zero" Zeitbudget: < 15 Minuten.
 * **Backup:** Tägliche Backups der Pi-hole-Konfiguration und Tailscale-State auf ein externes Ziel.
 
 ---
@@ -211,6 +211,9 @@ Clients müssen explizit konfiguriert werden.
 dig @192.168.178.2 leitstand.heimgewebe.home.arpa +short
 ```
 
+**Umgang mit unkooperativen Clients (DoH/DoT):**
+Um zu verhindern, dass Clients den Heimberry umgehen, werden bekannte DoH/DoT-Bootstrap-Server auf Router-Ebene (oder im Pi-hole, sofern der Client den Router-DNS anfragt) blockiert. Clients, die hart codierte externe Resolver nutzen und lokales DNS verweigern, werden im LAN in ein Gast-VLAN degradiert (sofern netzwerktechnisch umsetzbar).
+
 ---
 
 ## 4. DNS-Stack
@@ -251,9 +254,9 @@ leitstand.heimgewebe.home.arpa {
 
 * **Docker Compose (Heimserver):** App-Container binden Ports ausschließlich an `127.0.0.1` oder spezifisch an ein isoliertes Caddy-Netzwerk. Striktes Verbot von `ports: - "3000:3000"` ohne IP-Bindung für alle Dienste, außer Caddy selbst. Caddy verwaltet als einziger Dienst die Host-Ports 80/443.
 * **Host Firewall (UFW/iptables):**
-  * **Heimberry:** Erlaubt nur Port 53 (DNS) aus dem LAN/Tailnet sowie Tailscale-interne Ports. Pi-hole Webinterface ist nur über Tailscale erreichbar.
-  * **Heimserver:** Erlaubt nur Ports 80/443 (Caddy) aus dem LAN/Tailnet und Port 22 (SSH) als Admin-Zugang. Alle direkten App-Ports von außen sind strikt verboten.
-  * **Heim-PC:** Erlaubt Sunshine-Ports ausschließlich Tailnet-only. SSH ist Tailnet-only.
+  * **Heimberry:** Erlaubt Port 53 (DNS) aus dem LAN und Tailnet sowie Tailscale-interne Ports. Pi-hole Webinterface ist strikt auf Tailnet-only (tailscale0 interface) beschränkt.
+  * **Heimserver:** Erlaubt Ports 80/443 (Caddy) aus dem LAN und Tailnet. Port 22 (SSH) als Admin-Zugang ist aus dem LAN und Tailnet erlaubt. Alle direkten App-Ports von außen sind strikt verboten.
+  * **Heim-PC:** Erlaubt Sunshine-Ports und Port 22 (SSH) ausschließlich Tailnet-only (tailscale0 interface).
 
 ---
 
@@ -450,6 +453,7 @@ Fehler sind **lokalisierbar, eindeutig und erlauben administrativen Notfallzugri
 * Tailscale DNS auf Heimberry lenken
 
 **Validierung:** iPad erreicht interne FQDNs ohne lokales WLAN.
+* **Rollback-Plan:** Deaktivierung von "Override Local DNS" in der Tailscale Admin Console.
 
 ### Phase 3 — Service
 
@@ -457,6 +461,7 @@ Fehler sind **lokalisierbar, eindeutig und erlauben administrativen Notfallzugri
 * Container-Ports von `0.0.0.0` auf `127.0.0.1` oder internes Docker-Netz umstellen.
 
 **Validierung:** `curl http://heimserver:3000` (direkter Port) muss fehlschlagen, `curl https://leitstand.heimgewebe.home.arpa` muss funktionieren.
+* **Rollback-Plan:** Revert der `docker-compose.yml` Port-Bindings auf `0.0.0.0`, falls Caddy-Routing unvorhergesehene Fehler wirft.
 
 ### Phase 4 — Interaction
 
