@@ -1,0 +1,16 @@
+id: heim-pc
+name: Heim-PC
+status: active
+type: workstation
+ownership: owned
+
+model: Custom Build (ROG B550-F)
+cpu: Ryzen 9 5900XT
+ram_gb: 64
+storage: 2TB NVMe
+
+category: compute
+visibility: direct
+
+management_model: local
+trust_zone: trusted-client

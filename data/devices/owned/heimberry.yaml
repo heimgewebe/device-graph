@@ -1,0 +1,13 @@
+id: heimberry
+name: Heimberry
+status: active
+type: single-board-computer
+ownership: owned
+
+model: Raspberry Pi 4 8GB
+
+category: infrastructure
+visibility: direct
+
+management_model: standalone
+trust_zone: core
