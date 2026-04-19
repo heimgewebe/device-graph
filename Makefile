@@ -1,6 +1,6 @@
-.PHONY: validate validate-devices validate-networks validate-roles validate-assignments validate-relations validate-relation-targets
+.PHONY: validate validate-devices validate-networks validate-roles validate-assignments validate-relations validate-relation-targets validate-assignment-targets
 
-validate: validate-devices validate-networks validate-roles validate-assignments validate-relations validate-relation-targets
+validate: validate-devices validate-networks validate-roles validate-assignments validate-relations validate-relation-targets validate-assignment-targets
 	@echo "All validations passed successfully!"
 
 validate-devices:
@@ -20,3 +20,6 @@ validate-relations:
 
 validate-relation-targets:
 	@./scripts/validate/validate_relation_targets.py
+
+validate-assignment-targets:
+	@./scripts/validate/validate_assignment_targets.py
