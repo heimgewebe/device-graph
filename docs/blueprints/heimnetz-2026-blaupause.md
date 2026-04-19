@@ -27,17 +27,17 @@ linked_plans:
 
 Das Netzwerk wird über klare, isolierte Geräterollen modelliert:
 
-* **Heimberry (Truth Layer):** Hält die autoritative Wahrheit über Namen und Netzwerkgrenzen.
-* **Heimserver (Service Layer):** Führt Applikationen aus und stellt den Reverse Proxy bereit. Keine Primärauthorität für das Netz.
-* **Heim-PC (Interaction Layer):** Zustandsbehafteter Knoten für Entwicklung und Interaktion. Keine Netzwerkautorität.
-* **iPad (Access Layer):** Zustandsloser Zugriffsknoten über das Overlay-Netzwerk.
+* **Truth Layer (aktuell: Heimberry):** Autoritative Quelle für Namens- und Netzwerkwahrheit.
+* **Service Layer (aktuell: Heimserver):** Führt Applikationen aus und stellt zentrale Zugriffskomponenten bereit. Keine Primärauthorität für das Netz.
+* **Interaction Layer (aktuell: Heim-PC):** Zustandsbehafteter Knoten für Entwicklung und Interaktion. Keine Netzwerkautorität.
+* **Access Layer (aktuell: iPad):** Zustandsloser Zugriffsknoten über das Overlay-Netzwerk.
 
 ---
 
 ## 3. Zielnetzwerke und Modell-Beziehungen
 
 * **LAN:** Bildet die physische Unterbauschicht für stationäre Knoten (Heimberry, Heimserver, Heim-PC).
-* **Overlay:** Dient als ausschließliches Mesh-Netzwerk für Zugriffe, Routing und Zero-Trust-Isolation.
+* **Overlay:** Dient als primäre Zugriffsschicht für Routing und Zero-Trust-Isolation.
 * **Interdependenz:** Heimserver und Heim-PC vertrauen dem Heimberry als primärem Namens- und Netzwerk-Verteiler.
 
 ---
