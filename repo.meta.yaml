@@ -1,0 +1,5 @@
+name: device-graph
+description: An infrastructure model mapping devices, networks, roles, relationships, trust zones, and planned migrations.
+version: 1.0.0
+owner: user
+status: active

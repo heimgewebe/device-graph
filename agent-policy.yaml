@@ -1,0 +1,11 @@
+version: 1
+enforcement_level: strict
+rules:
+  - id: rule-01-no-redundant-assignments
+    description: "Role assignments must only exist in data/assignments/. No HAS_ROLE edges in relations/."
+  - id: rule-02-schema-compliance
+    description: "All files in data/ must pass validation against their respective schemas/ definition."
+  - id: rule-03-epistemic-state
+    description: "Assignments in target.yaml must have a confidence field (confirmed, planned, speculative)."
+  - id: rule-04-explicit-heterogeneity
+    description: "Devices must explicitly declare their visibility and category."
