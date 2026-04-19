@@ -1,5 +1,5 @@
 name: device-graph
-description: An infrastructure model mapping devices, networks, roles, relationships, trust zones, and planned migrations.
+description: Model repository for devices, networks, roles, relations, trust zones, and migration states.
 version: 1.0.0
 owner: user
 status: active
@@ -7,11 +7,21 @@ status: active
 purpose:
   kind: model-repo
   primary_goal: "Kartographierung von Geräten, Netzwerken, Rollen, Beziehungen, Vertrauenszonen und Migrationen"
+  non_goals:
+    - "host-spezifische Primärkonfiguration"
+    - "Secrets"
+    - "Betriebs-Runbooks einzelner Hosts"
+    - "Konfigurations-Spiegel anderer Infra-Repos"
 
 entrypoints:
   - README.md
   - AGENTS.md
   - docs/index.md
+
+semantic_roots:
+  - docs/reference
+  - docs/blueprints
+  - docs/plans
 
 data_roots:
   - data/devices
@@ -20,11 +30,21 @@ data_roots:
   - data/assignments
   - data/relations
 
-docs_roots:
-  - docs
-  - docs/blueprints
-  - docs/plans
-  - docs/reference
+schema_roots:
+  - schemas
+
+automation_roots:
+  - scripts/validate
+  - Makefile
 
 generated_roots:
   - docs/_generated
+
+core_invariants:
+  - "Role-to-device mapping only in data/assignments/"
+  - "General graph edges only in data/relations/"
+  - "All structured data must validate against schemas/"
+  - "Generated docs are never hand-edited"
+  - "Uncertainty must be explicit"
+
+validation_entrypoint: "make validate"
