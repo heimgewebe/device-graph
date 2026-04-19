@@ -13,13 +13,16 @@ errors = 0
 for file_path in sorted(glob.glob('data/networks/*.yaml')):
     with open(file_path, 'r') as f:
         data = yaml.safe_load(f)
-        if data:
-            try:
-                validate(instance=data, schema=schema)
-                print(f"✓ {file_path}")
-            except ValidationError as e:
-                print(f"✗ {file_path}: {e.message}")
-                errors += 1
+        if data is None:
+            print(f"✗ {file_path}: empty YAML document")
+            errors += 1
+            continue
+        try:
+            validate(instance=data, schema=schema)
+            print(f"✓ {file_path}")
+        except ValidationError as e:
+            print(f"✗ {file_path}: {e.message}")
+            errors += 1
 
 if errors > 0:
     sys.exit(1)
