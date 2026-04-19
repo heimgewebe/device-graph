@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "kind": { "type": "string" },
+    "criticality": { "type": "string", "enum": ["high", "medium", "low"] },
+    "exclusive": { "type": "boolean" }
+  },
+  "required": ["id", "name", "kind"]
+}

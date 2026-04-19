@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "status": { "type": "string", "enum": ["active", "planned", "retired", "unknown"] },
+    "type": { "type": "string" },
+    "ownership": { "type": "string" },
+    "model": { "type": "string" },
+    "ram_gb": { "type": "number" },
+    "cpu": { "type": "string" },
+    "storage": { "type": "string" },
+    "category": { "type": "string" },
+    "visibility": { "type": "string", "enum": ["direct", "indirect", "inferred", "unknown"] },
+    "management_model": { "type": "string" },
+    "trust_zone": { "type": "string" }
+  },
+  "required": ["id", "name", "status"]
+}
