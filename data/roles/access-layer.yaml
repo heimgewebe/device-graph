@@ -1,0 +1,6 @@
+id: access-layer
+name: Access Layer
+description: Zustandsloser Zugriffsknoten über das Overlay-Netzwerk.
+kind: client
+criticality: low
+exclusive: false

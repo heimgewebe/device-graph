@@ -1,3 +1,9 @@
 # Relation Types
 
-(WIP – Strukturplatzhalter. Noch keine verbindliche Definition.)
+Dieses Dokument definiert die verbindliche Semantik für die zulässigen Relationen (Edges) im Device-Graph. Alle Kanten müssen einem dieser Typen entsprechen.
+
+* **`connected_to`**: Physische oder logische (Netzwerk-)Verbindung. Wird primär verwendet, um Geräte mit Netzwerken zu verknüpfen (Topologie).
+* **`depends_on`**: Funktionale Abhängigkeit. Ein Knoten benötigt einen anderen für seine primäre Funktion.
+* **`managed_by`**: Administrative Steuerung. Ein Knoten wird durch einen anderen konfiguriert, orchestriert oder überwacht.
+* **`trusts`**: Vertrauensbeziehung (Security/Identity). Ein Knoten delegiert Autorität (z.B. Namensauflösung, Authentifizierung) an einen anderen Knoten.
+* **`exposed_to`**: Ingress/Exposure. Ein Dienst oder Port wird einem Netzwerk oder einem anderen Knoten gegenüber offengelegt.

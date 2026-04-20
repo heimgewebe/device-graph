@@ -1,0 +1,7 @@
+relations:
+  - source: heimserver
+    target: heimberry
+    type: trusts
+  - source: heim-pc
+    target: heimberry
+    type: trusts

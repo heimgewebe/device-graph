@@ -1,0 +1,6 @@
+id: interaction-layer
+name: Interaction Layer
+description: Zustandsbehafteter Knoten für Entwicklung und Interaktion. Besitzt keine Netzwerkautorität.
+kind: workstation
+criticality: low
+exclusive: false
