@@ -1,3 +1,4 @@
 id: client
 name: Client
 kind: endpoint
+layer: none

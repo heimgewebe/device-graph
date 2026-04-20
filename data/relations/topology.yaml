@@ -2,15 +2,20 @@ relations:
   - source: heimserver
     target: lan
     type: connected_to
+    confidence: confirmed
   - source: heimserver
     target: vpn
     type: connected_to
+    confidence: confirmed
   - source: heim-pc
     target: lan
     type: connected_to
+    confidence: confirmed
   - source: heimberry
     target: lan
     type: connected_to
+    confidence: confirmed
   - source: ipad-10
     target: lan
     type: connected_to
+    confidence: confirmed

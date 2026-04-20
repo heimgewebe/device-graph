@@ -2,5 +2,6 @@ id: truth-layer
 name: Truth Layer
 description: Autoritative Quelle für Namens- und Netzwerkwahrheit. Führt den primären FQDN-Raum und setzt kanonische Wahrheit durch.
 kind: core-infrastructure
+layer: truth
 criticality: high
 exclusive: true

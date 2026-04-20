@@ -1,5 +1,6 @@
 id: overlay
 name: Overlay
 kind: virtual
+status: planned
 scope: global
 transport: overlay

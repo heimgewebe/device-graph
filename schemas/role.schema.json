@@ -6,8 +6,9 @@
     "name": { "type": "string" },
     "description": { "type": "string" },
     "kind": { "type": "string" },
+    "layer": { "type": "string", "enum": ["truth", "service", "interaction", "access", "none"] },
     "criticality": { "type": "string", "enum": ["high", "medium", "low"] },
     "exclusive": { "type": "boolean" }
   },
-  "required": ["id", "name", "kind"]
+  "required": ["id", "name", "kind", "layer"]
 }

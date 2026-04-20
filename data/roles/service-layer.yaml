@@ -2,5 +2,6 @@ id: service-layer
 name: Service Layer
 description: Führt Applikationen aus und stellt zentrale Zugriffskomponenten bereit. Besitzt keine Primärauthorität für das Netz.
 kind: infrastructure
+layer: service
 criticality: medium
 exclusive: false
