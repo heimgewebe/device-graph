@@ -7,3 +7,7 @@ relations:
     target: overlay
     type: depends_on
     confidence: planned
+  - source: heim-pc
+    target: overlay
+    type: depends_on
+    confidence: planned

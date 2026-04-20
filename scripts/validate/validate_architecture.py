@@ -47,7 +47,10 @@ for layer in ['truth', 'service', 'interaction', 'access']:
 
 # 3. Analyze Relations
 access_devices = target_devices_by_layer['access']
-service_interaction_devices = target_devices_by_layer['service'].union(target_devices_by_layer['interaction'])
+interaction_devices = target_devices_by_layer['interaction']
+access_and_interaction_devices = access_devices.union(interaction_devices)
+
+service_interaction_devices = target_devices_by_layer['service'].union(interaction_devices)
 trust_targets_by_source = {dev: set() for dev in service_interaction_devices}
 
 for file_path in glob.glob('data/relations/*.yaml'):
@@ -72,8 +75,8 @@ for file_path in glob.glob('data/relations/*.yaml'):
                     if source in service_interaction_devices:
                         trust_targets_by_source[source].add(target)
 
-# Rule E (Consistency of Access Layer)
-device_network_deps = {dev: set() for dev in access_devices}
+# Rule E (Consistency of Access & Interaction Layers)
+device_network_deps = {dev: set() for dev in access_and_interaction_devices}
 for file_path in glob.glob('data/relations/*.yaml'):
     with open(file_path, 'r') as f:
         data = yaml.safe_load(f)
@@ -81,12 +84,13 @@ for file_path in glob.glob('data/relations/*.yaml'):
             for relation in data['relations']:
                 source = relation.get('source')
                 target = relation.get('target')
-                if relation.get('type') == 'depends_on' and source in access_devices:
+                if relation.get('type') == 'depends_on' and source in access_and_interaction_devices:
                     device_network_deps[source].add(target)
 
-for dev in access_devices:
+for dev in access_and_interaction_devices:
     if 'overlay' not in device_network_deps.get(dev, set()):
-         print(f"✗ Architecture violation: Access layer device '{dev}' lacks a 'depends_on' relation to the 'overlay' network.")
+         layer_name = 'Access' if dev in access_devices else 'Interaction'
+         print(f"✗ Architecture violation: {layer_name} layer device '{dev}' lacks a 'depends_on' relation to the 'overlay' network.")
          errors += 1
 
 # Rule F: Trust Consistency for Service and Interaction Layers
