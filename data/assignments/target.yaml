@@ -1,10 +1,13 @@
 assignments:
-  - role: dns
+  - role: truth-layer
+    device: heimberry
+    confidence: planned
+  - role: service-layer
     device: heimserver
-    confidence: confirmed
-  - role: vpn-server
-    device: heimserver
-    confidence: confirmed
-  - role: client
+    confidence: planned
+  - role: interaction-layer
+    device: heim-pc
+    confidence: planned
+  - role: access-layer
     device: ipad-10
-    confidence: confirmed
+    confidence: planned

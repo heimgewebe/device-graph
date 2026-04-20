@@ -1,4 +1,5 @@
 id: vpn
 name: VPN
 kind: virtual
+status: active
 cidr_v4: 10.7.0.0/24

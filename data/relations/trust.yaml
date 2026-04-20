@@ -1,0 +1,9 @@
+relations:
+  - source: heimserver
+    target: heimberry
+    type: trusts
+    confidence: planned
+  - source: heim-pc
+    target: heimberry
+    type: trusts
+    confidence: planned

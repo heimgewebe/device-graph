@@ -1,5 +1,6 @@
 id: lan
 name: LAN
 kind: local
+status: active
 cidr_v4: 192.168.178.0/24
 gateway_v4: 192.168.178.1

@@ -1,0 +1,13 @@
+relations:
+  - source: ipad-10
+    target: overlay
+    type: depends_on
+    confidence: planned
+  - source: heimserver
+    target: overlay
+    type: depends_on
+    confidence: planned
+  - source: heim-pc
+    target: overlay
+    type: depends_on
+    confidence: planned
