@@ -2,10 +2,11 @@
 
 Dieses Dokument definiert, wie Zielzustände, Migrationen und Unsicherheiten im Device-Graph modelliert werden. Da dieses Repository sich in einer aktiven Modellierungsphase befindet, ist epistemische Disziplin unerlässlich.
 
-## Status (Geräte & Netzwerke)
+## Status (Netzwerke)
 
-Geräte und Netzwerke verfügen beide über ein natives `status`-Feld in ihrem Schema. Damit ist sichergestellt, dass nicht nur Zuordnungen, sondern auch die physischen/logischen Knoten selbst Migrationsphasen abbilden können.
-Für Knoten wie Geräte und Netzwerke verwenden wir `status`, um ihren Lebenszyklus auszudrücken:
+Netzwerke verfügen über ein natives `status`-Feld im Schema, um ihren physischen/logischen Lebenszyklus auszudrücken. Geräte hingegen werden derzeit primär über Zuordnungen (Assignments), Relationen und Kontext in Migrationsphasen modelliert.
+
+Für Knoten wie Netzwerke verwenden wir `status`:
 
 * **`active`**: Real und in Produktion.
 * **`planned`**: Noch nicht realisiert, aber als Zielzustand beschlossen. Ein `planned`-Zustand ist kein Fehler, sondern expliziter Teil des Modells.
