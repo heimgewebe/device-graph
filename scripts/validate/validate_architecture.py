@@ -47,6 +47,9 @@ for layer in ['truth', 'service', 'interaction', 'access']:
 
 # 3. Analyze Relations
 access_devices = target_devices_by_layer['access']
+service_interaction_devices = target_devices_by_layer['service'].union(target_devices_by_layer['interaction'])
+trust_targets_by_source = {dev: set() for dev in service_interaction_devices}
+
 for file_path in glob.glob('data/relations/*.yaml'):
     with open(file_path, 'r') as f:
         data = yaml.safe_load(f)
@@ -56,8 +59,8 @@ for file_path in glob.glob('data/relations/*.yaml'):
                 target = relation.get('target')
                 rel_type = relation.get('type')
 
-                # Rule C: Trust targets must be Truth devices
                 if rel_type == 'trusts':
+                    # Rule C: Trust targets must be Truth devices
                     if target not in truth_devices:
                         print(f"✗ Architecture violation in {file_path}: 'trusts' target '{target}' is not a 'truth' layer device.")
                         errors += 1
@@ -66,11 +69,10 @@ for file_path in glob.glob('data/relations/*.yaml'):
                         print(f"✗ Architecture violation in {file_path}: 'truth' layer device '{source}' cannot trust itself.")
                         errors += 1
 
-                # Rule E: Access layer devices must depend on the overlay network
-                # We will check this globally below by collecting all dependencies first.
+                    if source in service_interaction_devices:
+                        trust_targets_by_source[source].add(target)
 
-# Check Rule E (Consistency of Access Layer)
-# Collect all network dependencies for devices
+# Rule E (Consistency of Access Layer)
 device_network_deps = {dev: set() for dev in access_devices}
 for file_path in glob.glob('data/relations/*.yaml'):
     with open(file_path, 'r') as f:
@@ -86,6 +88,30 @@ for dev in access_devices:
     if 'overlay' not in device_network_deps.get(dev, set()):
          print(f"✗ Architecture violation: Access layer device '{dev}' lacks a 'depends_on' relation to the 'overlay' network.")
          errors += 1
+
+# Rule F: Trust Consistency for Service and Interaction Layers
+for dev in service_interaction_devices:
+    has_truth_trust = False
+    for target in trust_targets_by_source[dev]:
+        if target in truth_devices:
+            has_truth_trust = True
+            break
+    if not has_truth_trust:
+        print(f"✗ Architecture violation: Service/Interaction layer device '{dev}' must explicitly have a 'trusts' relation to a Truth layer device.")
+        errors += 1
+
+# 4. Analyze Migration Coexistence Pattern
+network_status = {}
+for file_path in glob.glob('data/networks/*.yaml'):
+    with open(file_path, 'r') as f:
+        data = yaml.safe_load(f)
+        if data:
+            network_status[data.get('id')] = data.get('status')
+
+if network_status.get('overlay') == 'planned' and network_status.get('vpn') == 'active':
+    print("ℹ Migration Pattern Detected: 'vpn' is active while 'overlay' is planned. This is a valid, recognized coexistence state.")
+elif network_status.get('overlay') == 'active' and network_status.get('vpn') == 'active':
+    print("ℹ Migration Pattern Warning: Both 'vpn' and 'overlay' are active. Ensure this is an intentional transitional phase.")
 
 if errors > 0:
     sys.exit(1)

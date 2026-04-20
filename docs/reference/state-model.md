@@ -4,6 +4,7 @@ Dieses Dokument definiert, wie Zielzustände, Migrationen und Unsicherheiten im 
 
 ## Status (Geräte & Netzwerke)
 
+Geräte und Netzwerke verfügen beide über ein natives `status`-Feld in ihrem Schema. Damit ist sichergestellt, dass nicht nur Zuordnungen, sondern auch die physischen/logischen Knoten selbst Migrationsphasen abbilden können.
 Für Knoten wie Geräte und Netzwerke verwenden wir `status`, um ihren Lebenszyklus auszudrücken:
 
 * **`active`**: Real und in Produktion.
